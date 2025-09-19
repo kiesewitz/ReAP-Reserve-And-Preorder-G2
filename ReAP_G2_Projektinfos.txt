@@ -1,0 +1,12 @@
+Teammitglieder:
+- Beichtbuchner
+- Katholnigg
+- Pirkmann
+- Pripfl
+- Rath
+- Schaar
+- Wieser
+- Zugaj
+
+Git-Repo (mit Kanban Board): https://github.com/kiesewitz/ReAP-Reserve-And-Preorder-G2
+
