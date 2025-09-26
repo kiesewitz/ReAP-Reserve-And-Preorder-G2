@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>at.htlle</groupId>
-	<artifactId>Reserve_And_Preorder_G2</artifactId>
+	<artifactId>Reserve_And_Preorder_Customer_G2</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Reserve_And_Preorder_G2</name>
 	<description>Reserve_And_Preorder_G2</description>

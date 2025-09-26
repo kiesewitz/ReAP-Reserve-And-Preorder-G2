@@ -7,3 +7,8 @@ Alle Mitglieder anwesend
 Überarbeitung User Stories
 
 Pripfl, Rath, Schaar, Wieser, Zugaj anwesend
+
+3. Einheit:
+Erstellung Customer & Chef Page Project mit Spring Boot
+
+Alle Mitglieder anwesend
