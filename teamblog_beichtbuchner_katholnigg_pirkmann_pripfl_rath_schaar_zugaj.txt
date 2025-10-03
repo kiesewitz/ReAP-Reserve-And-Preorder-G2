@@ -12,3 +12,8 @@ Pripfl, Rath, Schaar, Wieser, Zugaj anwesend
 Erstellung Customer & Chef Page Project mit Spring Boot
 
 Alle Mitglieder anwesend
+
+4. Einheit:
+Arbeit an Customer, Koch, Restaurant Owner und Waiter-App
+
+Katholnigg, Pirkmann, Rath, Schaar, Zugaj anwesend
