@@ -1,0 +1,109 @@
+:root {
+    --primary: #4a2eff;
+    --text-dark: #222;
+    --text-light: #666;
+    --bg-light: #f7f7f7;
+    --white: #fff;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background-color: var(--bg-light);
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: var(--primary);
+    margin-bottom: 20px;
+    font-size: 28px;
+}
+
+#orders {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Order Card */
+.order {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+    transition: all 0.3s ease;
+}
+
+.order h3 {
+    margin: 0 0 15px 0;
+    font-size: 20px;
+    color: var(--text-dark);
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.info-row i {
+    font-size: 16px;
+    color: var(--primary);
+}
+
+.extra-info {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 12px;
+    background-color: #f0f0ff;
+    font-size: 14px;
+    color: var(--text-dark);
+}
+
+/* Buttons */
+button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    background-color: var(--primary);
+    color: var(--white);
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    background-color: #3620b7;
+}
+
+/* Blink styles */
+.blinking {
+    animation: blink 1s infinite;
+}
+
+.blinking-fast {
+    animation: blink 0.4s infinite;
+}
+
+@keyframes blink {
+    0% { background-color: var(--white); }
+    50% { background-color: #fff59d; }
+    100% { background-color: var(--white); }
+}
+
+/* Controls */
+#controls {
+    margin-top: 30px;
+    text-align: center;
+}
+
+#controls label {
+    font-size: 14px;
+    color: var(--text-dark);
+}
