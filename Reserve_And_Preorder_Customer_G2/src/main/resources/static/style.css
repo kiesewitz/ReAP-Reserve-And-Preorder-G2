@@ -57,6 +57,7 @@ html {
 
 .information {
     color: #FFFFFF;
+    background-color: #4525f2;
     align-items: center;
     align-content: center;
     align-self: center;
@@ -65,21 +66,47 @@ html {
 
 .infocircle {
     background-color: #FFFFFF;
+    display: flex;
+    justify-content: center;
     align-items: center;
-    align-content: center;
-    align-self: center;
-    text-align: center;
-    border-radius: 100%;
+    border-radius: 50%;
     width: 150px;
     height: 150px;
-    margin: auto;
-    margin-top: 30px;
-    margin-bottom: 30px;
+    margin: 30px auto;
+    text-align: center;
 }
+
 
 .info-icon {
     width: 90px;
     height: 90px;
+}
+
+.infotitle {
+    font-size: 30px;
+    color: #FFFFFF;
+    font-weight: bold;
+}
+
+.infotext {
+    font-size: 22px;
+    color: lightgray;
+}
+
+.impressum {
+    background-color: #d7dcde;
+    width: 100%;
+    padding: 15px;
+    align-items: center;
+    align-content: center;
+    align-self: center;
+    text-align: center;
+}
+
+.impressumtext {
+    font-size: 23px;
+    font-weight: bold;
+    color: #a1a1a1;
 }
 
 @font-face {
