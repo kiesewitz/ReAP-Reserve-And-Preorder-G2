@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <title>Kellner – Übersicht</title>
+
+    <!-- Verweis auf das ausgelagerte Stylesheet im selben Verzeichnis -->
+    <link rel="stylesheet" href="waiter.css">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<header>Kellner – Tische & Bestellungen</header>
+
+<div class="container grid">
+    <!-- Tische -->
+    <section class="card">
+        <h2>Tische</h2>
+        <div class="toolbar">
+            <input id="q" type="search" placeholder="Suche Tisch / Bestellung / Item…" />
+            <button id="refreshBtn" class="btn-gray">↻ Aktualisieren</button>
+        </div>
+        <div id="tables" class="table-grid"></div>
+    </section>
+
+    <!-- Bestellungen -->
+    <section class="card">
+        <h2>Offene Bestellungen</h2>
+        <div id="orders"></div>
+    </section>
+</div>
+
+<!-- Verweis auf das ausgelagerte JavaScript -->
+<script src="waiter.js" defer></script>
+</body>
+</html>

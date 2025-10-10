@@ -1,0 +1,35 @@
+/* waiter.css - Styles für die Kellner-Übersicht */
+body { margin:0; font-family:"Poppins",sans-serif; background:#f4f6fa; color:#222; }
+header { background:#2b2f42; color:#fff; padding:20px 30px; font-size:26px; font-weight:600; }
+.container { max-width:1400px; margin:30px auto; padding:0 20px; }
+
+.grid { display:grid; grid-template-columns:1.3fr 1fr; gap:24px; }
+@media(max-width:1000px){ .grid{ grid-template-columns:1fr; } }
+
+.card { background:#fff; border-radius:14px; box-shadow:0 4px 12px rgba(0,0,0,0.08); padding:20px; }
+.card h2 { margin:0 0 16px; font-size:22px; font-weight:600; }
+
+.table-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+.table-card { background:#f8f9fc; border:2px solid #ddd; border-radius:12px; padding:16px; font-size:18px; }
+.table-card .row { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+
+.badge { padding:6px 12px; border-radius:999px; font-size:14px; font-weight:500; }
+.status-BESTELLUNG_FERTIG { background:#d4f7e7; color:#157347; }
+.status-BELEGT            { background:#fff3cd; color:#856404; }
+.status-LEER              { background:#dbeafe; color:#1e3a8a; }
+.status-ESSEN             { background:#ede9fe; color:#5b21b6; }
+.status-ABSERVIEREN       { background:#ffe5e5; color:#a50000; }
+
+.table-card button { font-size:16px; padding:10px 14px; margin-top:6px; }
+
+.order { background:#f9fafb; border:2px solid #ddd; border-radius:12px; padding:16px; margin-bottom:14px; font-size:18px; }
+.order .row { display:flex; justify-content:space-between; margin-bottom:8px; }
+.order .items { font-size:16px; margin:6px 0; }
+.order button { font-size:16px; padding:10px 14px; }
+
+.toolbar { display:flex; gap:12px; margin-bottom:20px; }
+input[type=search]{ flex:1; font-size:18px; padding:12px 14px; border:2px solid #ccc; border-radius:10px; }
+button { cursor:pointer; border:none; border-radius:10px; background:#2b2f42; color:#fff; font-size:16px; font-weight:500; padding:10px 14px; }
+button:hover { opacity:0.9; }
+.btn-gray { background:#6c757d; }
+.btn-green { background:#198754; }

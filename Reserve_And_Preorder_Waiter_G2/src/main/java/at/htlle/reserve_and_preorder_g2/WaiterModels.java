@@ -10,7 +10,8 @@ public class WaiterModels {
         LEER,               // Tisch ist frei/abgeräumt
         BELEGT,             // Gäste sitzen, aber kein To-do
         BESTELLUNG_FERTIG,  // Bestellung steht bereit, Kellner soll austragen
-        ESSEN               // serviert, Gäste essen noch
+        ESSEN,              // serviert, Gäste essen noch
+        ABSERVIEREN         // Gäste fertig, Tisch muss abgeräumt werden
     }
 
     // ---- Deutsche Bestell-Status ----

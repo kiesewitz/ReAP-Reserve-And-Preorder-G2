@@ -27,10 +27,22 @@ public class WaiterController {
         return ResponseEntity.noContent().build();
     }
 
-    // (2b) Optional: gesamten Tisch als "fertig" markieren
+    // (2b) Tisch abservieren (nach dem Essen)
+    @PostMapping("/tables/{tableId}/clear")
+    public ResponseEntity<Void> clear(@PathVariable Long tableId) {
+        service.clearTable(tableId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // (2c) gesamten Tisch als "fertig" markieren
     @PostMapping("/tables/{tableId}/finish")
     public ResponseEntity<Void> finish(@PathVariable Long tableId) {
-        service.finishTable(tableId);
-        return ResponseEntity.noContent().build();
+        boolean ok = service.finishTable(tableId);
+        if (ok) {
+            return ResponseEntity.noContent().build();
+        } else {
+            // 409 Conflict: Aktion nicht erlaubt (z.B. noch BEREIT-Bestellungen oder falscher Status)
+            return ResponseEntity.status(409).build();
+        }
     }
 }

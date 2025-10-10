@@ -15,7 +15,7 @@ public class WaiterService {
     private final AtomicLong ids = new AtomicLong(200);
 
     public WaiterService() {
-        // ---- Demo-Tische (mit deutschen Status) ----
+        // ---- Demo-Tische (unverändert wie ursprünglich) ----
         tables.put(1L, new TableDto(1L, "Tisch 1", 4, TableStatus.BESTELLUNG_FERTIG));
         tables.put(2L, new TableDto(2L, "Tisch 2", 2, TableStatus.BELEGT));
         tables.put(3L, new TableDto(3L, "Tisch 3", 6, TableStatus.LEER));
@@ -23,7 +23,7 @@ public class WaiterService {
         tables.put(5L, new TableDto(5L, "Tisch 5", 8, TableStatus.BELEGT));
         tables.put(6L, new TableDto(6L, "Tisch 6", 2, TableStatus.ESSEN));
 
-        // ---- Demo-Bestellungen (Deutsch) ----
+        // ---- Demo-Bestellungen (unverändert wie ursprünglich) ----
         OrderDto o101 = new OrderDto();
         o101.id = 101L; o101.tableId = 1L; o101.status = OrderStatus.BEREIT;
         o101.items.add(new ItemDto("Margherita", 1));
@@ -63,8 +63,6 @@ public class WaiterService {
     public WaiterStateDto getState() {
         var listTables = new ArrayList<>(tables.values());
         var listOrders = new ArrayList<>(orders.values());
-        // optional: nur nicht-servierte anzeigen
-        // listOrders.removeIf(o -> o.status == OrderStatus.SERVIERT);
         return new WaiterStateDto(listTables, listOrders);
     }
 
@@ -75,13 +73,39 @@ public class WaiterService {
         recalcTableStatus(o.tableId);
     }
 
-    /** „Tisch fertig“ = Tisch abgeräumt → LEER */
-    public void finishTable(Long tableId) {
-        // Bestellungen bleiben historisch SERVIERT (kein Undo)
+    /** „Tisch abservieren“ = Gäste fertig, Kellner markiert, Tisch muss abgeräumt werden */
+    public void clearTable(Long tableId) {
         var t = tables.get(tableId);
-        if (t != null) {
-            t.status = TableStatus.LEER;
+        if (t != null && t.status == TableStatus.ESSEN) {
+            t.status = TableStatus.ABSERVIEREN;
         }
+    }
+
+    /**
+     * „Tisch fertig“ = Tisch abgeräumt → LEER
+     * Rückgabewert: true = erfolgreich gesetzt, false = nicht erlaubt (z.B. noch BEREIT-Bestellungen oder falscher Status)
+     */
+    public boolean finishTable(Long tableId) {
+        var t = tables.get(tableId);
+        if (t == null) return false;
+
+        // Wenn es noch Bestellungen mit Status BEREIT für diesen Tisch gibt, darf nicht fertig gesetzt werden.
+        boolean anyReady = orders.values().stream()
+                .anyMatch(o -> Objects.equals(o.tableId, tableId) && o.status == OrderStatus.BEREIT);
+        if (anyReady) {
+            return false; // nicht erlaubt
+        }
+
+        // Nur erlauben, wenn Tisch zuvor abserviert wurde (oder du möchtest weitere Regeln, passe hier an)
+        if (t.status == TableStatus.ABSERVIEREN) {
+            t.status = TableStatus.LEER;
+            return true;
+        }
+
+        // Falls du möchtest, dass finish auch erlaubt ist, wenn keine Bestellungen existieren,
+        // könntest du hier z.B. erlauben, wenn keine Bestellungen vorhanden sind.
+        // Aktuell: nur ABSERVIEREN -> LEER erlaubt.
+        return false;
     }
 
     // ---- Hilfslogik für Status-Berechnung ----
@@ -107,8 +131,10 @@ public class WaiterService {
             t.status = TableStatus.BELEGT;              // Gäste warten, Kellner hat kein To-do
         } else if (allServedOrNone) {
             // Es gibt entweder keine Bestellungen, oder alle sind serviert → Gäste essen
-            // (erst bei „Tisch fertig“ wird auf LEER gesetzt)
-            t.status = TableStatus.ESSEN;
+            // WICHTIG: Wenn Tisch aktuell ABSERVIEREN oder LEER ist, lassen wir den Status unverändert.
+            if (t.status != TableStatus.ABSERVIEREN && t.status != TableStatus.LEER) {
+                t.status = TableStatus.ESSEN;
+            }
         } else {
             // Fallback
             t.status = TableStatus.BELEGT;
