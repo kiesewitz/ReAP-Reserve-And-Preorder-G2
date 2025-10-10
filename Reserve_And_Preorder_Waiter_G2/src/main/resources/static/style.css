@@ -1,0 +1,102 @@
+body {
+    background-color: #4525f2;
+    color: #FFFFFF;
+    font-family: Poppins, serif;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+.bigtitle {
+    font-size: 50px;
+    font-weight: bold;
+    margin: 5px;
+    text-align: center;
+}
+
+.mediumtitle {
+    font-size: 45px;
+    font-weight: bold;
+    margin: 2px;
+    text-align: center;
+    color: #4525f2;
+}
+
+.subtitle {
+    font-size: 27px;
+    text-align: center;
+}
+
+.image-background {
+    position: relative;
+    width: 100vw;
+    height: 800px;
+    background-image: url('Restaurant_Food.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.image-background::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(128, 128, 128, 0.725);
+    z-index: 1;
+}
+
+.content {
+    position: relative;
+    z-index: 2;
+    color: white;
+    text-align: center;
+    padding-top: 150px;
+}
+
+.information {
+    color: #FFFFFF;
+}
+
+@font-face {
+    font-family: Poppins;
+    src: url("poppins/Poppins-Regular.ttf");
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+.btn {
+    display: block;
+    width: 300px;               /* fixed width like in your image */
+    margin: 20px auto;          /* center horizontally with some spacing */
+    padding: 15px 0;
+    font-size: 18px;
+    font-weight: 600;           /* semi-bold */
+    border-radius: 30px;        /* rounded corners */
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    font-family: 'Poppins', sans-serif;
+    transition: background-color 0.3s ease;
+}
+
+.gray-btn {
+    background-color: #f0f0f0;  /* light gray */
+    color: #222222;             /* dark text */
+}
+
+.gray-btn:hover {
+    background-color: #dcdcdc;  /* slightly darker on hover */
+}
+
+.blue-btn {
+    background-color: #4a32f7;  /* bright blue */
+    color: #ffffff;
+}
+
+.blue-btn:hover {
+    background-color: #3722c8;  /* darker blue on hover */
+}
