@@ -1,11 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Reservieren</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <p class="bigtitle">Reservieren</p>
-    </body>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Reservieren</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<p class="bigtitle">Reservieren</p>
+
+<div class="restaurant-container" id="restaurantContainer">
+    <!--The cards of the restaurants go here-->
+</div>
+
+<script>
+    fetch("/restaurant")
+        .then(response => response.json())
+        .then(restaurants => {
+            const container = document.getElementById("restaurantContainer");
+
+            restaurants.forEach(r => {
+                const card = document.createElement("div");
+                card.className = "restaurant-card";
+                card.innerHTML = `
+            <h2>${r.restaurantName}</h2>
+            <p>${r.description}</p>
+            <p><strong>Adresse:</strong> ${r.address}</p>
+            <p><strong>Telefon:</strong> ${r.phoneNumber}</p>
+
+            <div class="reserve-form">
+              <input type="text" placeholder="Name">
+              <input type="email" placeholder="E-Mail-Adresse">
+              <textarea placeholder="Notizen"></textarea>
+              <button>Reservieren</button>
+            </div>
+          `;
+                container.appendChild(card);
+            });
+        })
+        .catch(err => console.error("Fehler beim Laden:", err));
+</script>
+</body>
 </html>
