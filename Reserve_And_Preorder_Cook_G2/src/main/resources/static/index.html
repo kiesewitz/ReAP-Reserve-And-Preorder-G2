@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Cook Orders Dashboard</title>
+    <link rel="stylesheet" href="stylesheet.css">
+    <script src="https://kit.fontawesome.com/a2e0ad9c6e.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<header>
+    <h1>Küchenbestellungen</h1>
+    <p>Live-Übersicht aller eingehenden Orders</p>
+</header>
+
+<main id="orders" class="orders-container"></main>
+
+<footer id="controls">
+    <label>
+        <input type="checkbox" id="showDone" onchange="renderOrders()"> Erledigte anzeigen
+    </label>
+</footer>
+
+<script src="cook_script.js"></script>
+</body>
+</html>

@@ -56,6 +56,10 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>at.htlle.reserveAndPreorderCookG2.ReserveAndPreorderCookG2Application</mainClass>
+                    <jmxPort>0</jmxPort>
+                </configuration>
             </plugin>
         </plugins>
     </build>
