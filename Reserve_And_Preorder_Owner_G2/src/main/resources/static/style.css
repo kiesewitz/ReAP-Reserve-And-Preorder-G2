@@ -1,0 +1,14 @@
+body {
+    background-image: url("images/Kueche.jpg");
+    background-size: 100%;
+}
+
+h1 {
+    text-align: center;
+    background-color: blue;
+    color: white;
+}
+
+.inputDIV {
+    margin:auto;
+}
