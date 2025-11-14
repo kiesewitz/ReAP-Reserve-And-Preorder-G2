@@ -151,3 +151,46 @@ html, body {
 .blue-btn:hover {
     background-color: #3722c8;  /* darker blue on hover */
 }
+
+.restaurant-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+.restaurant-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    width: 320px;
+    padding: 20px;
+}
+.restaurant-card h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #333;
+}
+.restaurant-card p {
+    margin: 5px 0;
+    color: #666;
+}
+.reserve-form {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.reserve-form input,
+.reserve-form textarea,
+.reserve-form button {
+    font-family: inherit;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    padding: 8px;
+}
+.reserve-form button {
+    background-color: #4525f2;
+    color: white;
+    cursor: pointer;
+    border: none;
+}

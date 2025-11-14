@@ -9,5 +9,4 @@ public class ReserveAndPreorderG2Application {
 	public static void main(String[] args) {
 		SpringApplication.run(ReserveAndPreorderG2Application.class, args);
 	}
-
 }
