@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reservierung ändern</title>
+    <link rel="stylesheet" href="editStyle.css" />
+</head>
+<body>
+
+<div class="overlay">
+    <div class="edit-box">
+
+        <h2>Reservierung ändern</h2>
+
+        <form>
+
+            <label>Name:</label>
+            <input type="text" placeholder="Max Mustermann">
+
+            <label>Uhrzeit:</label>
+            <input type="time" value="19:30">
+
+            <label>Telefonnummer:</label>
+            <input type="tel" placeholder="+43 660 1234567">
+
+            <label>E-Mail:</label>
+            <input type="email" placeholder="max@mustermann.at">
+
+            <label>Zahlungsmethode:</label>
+            <select>
+                <option>Mastercard</option>
+                <option>Visa</option>
+                <option>Barzahlung</option>
+                <option>PayPal</option>
+            </select>
+
+            <label>Notizen:</label>
+            <textarea placeholder="Besondere Wünsche..."></textarea>
+
+            <div class="btn-area">
+                <button type="button" class="cancel" onclick="window.location.href='/index.html'">Abbrechen</button>
+                <button type="submit" class="save">Speichern</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
