@@ -28,13 +28,101 @@
             <p><strong>Telefon:</strong> ${r.phoneNumber}</p>
 
             <div class="reserve-form">
-              <input type="text" placeholder="Name">
-              <input type="email" placeholder="E-Mail-Adresse">
-              <textarea placeholder="Notizen"></textarea>
-              <button>Reservieren</button>
+              <input type="datetime-local" class="datetime-input" placeholder="Datum & Uhrzeit" required>
+              <input type="number" class="guests-input" placeholder="Anzahl Gäste" min="1" max="20" required>
+              <label>
+                <input type="checkbox" class="group-checkbox"> Gruppenreservierung
+              </label>
+              <div class="group-emails" style="display: none;">
+                <textarea class="group-emails-textarea" placeholder="E-Mail-Adressen der Gäste (eine pro Zeile)"></textarea>
+              </div>
+              <button class="reserve-btn" data-restaurant-id="${r.id}">Reservieren</button>
             </div>
           `;
                 container.appendChild(card);
+
+                // Event listeners for this card
+                const groupCheckbox = card.querySelector('.group-checkbox');
+                const groupEmailsDiv = card.querySelector('.group-emails');
+                const reserveBtn = card.querySelector('.reserve-btn');
+
+                // Toggle group emails visibility
+                groupCheckbox.addEventListener('change', (e) => {
+                    groupEmailsDiv.style.display = e.target.checked ? 'block' : 'none';
+                });
+
+                // Handle reservation submission
+                reserveBtn.addEventListener('click', () => {
+                    const datetime = card.querySelector('.datetime-input').value;
+                    const guests = card.querySelector('.guests-input').value;
+                    const isGroup = groupCheckbox.checked;
+                    const restaurantId = reserveBtn.getAttribute('data-restaurant-id');
+
+                    if (!datetime || !guests) {
+                        alert('Bitte füllen Sie alle Felder aus!');
+                        return;
+                    }
+
+                    // Prepare reservation data
+                    // Convert datetime-local format to ISO-8601 format with seconds
+                    const isoDateTime = datetime + ':00'; // Add seconds
+
+                    const reservationData = {
+                        customerId: 1, // TODO: Replace with actual customer ID from login
+                        restaurantId: parseInt(restaurantId),
+                        reservationDateTime: isoDateTime,
+                        numberOfGuests: parseInt(guests)
+                    };
+
+                    let apiUrl = 'http://localhost:8083/api/reservations';
+                    let requestBody = reservationData;
+
+                    // If group reservation, prepare group request
+                    if (isGroup) {
+                        const emailsText = card.querySelector('.group-emails-textarea').value;
+                        const guestEmails = emailsText.split('\n').filter(e => e.trim().length > 0);
+
+                        if (guestEmails.length === 0) {
+                            alert('Bitte geben Sie E-Mail-Adressen für die Gruppenmitglieder ein!');
+                            return;
+                        }
+
+                        apiUrl = 'http://localhost:8083/api/reservations/group';
+                        requestBody = {
+                            reservation: reservationData,
+                            guestEmails: guestEmails
+                        };
+                    }
+
+                    // Submit reservation
+                    fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Reservierung fehlgeschlagen');
+                        }
+                        return response.json();
+                    })
+                    .then(reservation => {
+                        alert(`Reservierung erfolgreich erstellt!\n\nReservierungs-ID: ${reservation.id}\nStatus: ${reservation.status}\nTisch: ${reservation.tableId || 'Noch nicht zugewiesen'}`);
+
+                        // Clear form
+                        card.querySelector('.datetime-input').value = '';
+                        card.querySelector('.guests-input').value = '';
+                        groupCheckbox.checked = false;
+                        groupEmailsDiv.style.display = 'none';
+                        card.querySelector('.group-emails-textarea').value = '';
+                    })
+                    .catch(err => {
+                        console.error('Fehler:', err);
+                        alert('Fehler bei der Reservierung: ' + err.message);
+                    });
+                });
             });
         })
         .catch(err => console.error("Fehler beim Laden:", err));

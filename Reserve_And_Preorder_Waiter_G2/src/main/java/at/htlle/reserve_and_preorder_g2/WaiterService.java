@@ -1,143 +1,270 @@
 package at.htlle.reserve_and_preorder_g2;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import static at.htlle.reserve_and_preorder_g2.WaiterModels.*;
 
+/**
+ * Waiter Service now uses Owner API for reservations and tables
+ */
 @Service
 public class WaiterService {
 
-    private final Map<Long, TableDto> tables = new LinkedHashMap<>();
-    private final Map<Long, OrderDto> orders = new LinkedHashMap<>();
-    private final AtomicLong ids = new AtomicLong(200);
+    private final OwnerApiClient ownerApi;
+    private final CookApiClient cookApi;
 
-    public WaiterService() {
-        // ---- Demo-Tische (unverändert wie ursprünglich) ----
-        tables.put(1L, new TableDto(1L, "Tisch 1", 4, TableStatus.BESTELLUNG_FERTIG));
-        tables.put(2L, new TableDto(2L, "Tisch 2", 2, TableStatus.BELEGT));
-        tables.put(3L, new TableDto(3L, "Tisch 3", 6, TableStatus.LEER));
-        tables.put(4L, new TableDto(4L, "Tisch 4", 4, TableStatus.BESTELLUNG_FERTIG));
-        tables.put(5L, new TableDto(5L, "Tisch 5", 8, TableStatus.BELEGT));
-        tables.put(6L, new TableDto(6L, "Tisch 6", 2, TableStatus.ESSEN));
-
-        // ---- Demo-Bestellungen (unverändert wie ursprünglich) ----
-        OrderDto o101 = new OrderDto();
-        o101.id = 101L; o101.tableId = 1L; o101.status = OrderStatus.BEREIT;
-        o101.items.add(new ItemDto("Margherita", 1));
-        o101.items.add(new ItemDto("Apfelschorle", 2));
-        orders.put(o101.id, o101);
-
-        OrderDto o102 = new OrderDto();
-        o102.id = 102L; o102.tableId = 2L; o102.status = OrderStatus.KUECHE;
-        o102.items.add(new ItemDto("Caesar Salad", 1));
-        o102.items.add(new ItemDto("Mineralwasser", 1));
-        orders.put(o102.id, o102);
-
-        OrderDto o103 = new OrderDto();
-        o103.id = 103L; o103.tableId = 4L; o103.status = OrderStatus.BEREIT;
-        o103.items.add(new ItemDto("Tagliatelle", 2));
-        o103.items.add(new ItemDto("Espresso", 2));
-        orders.put(o103.id, o103);
-
-        OrderDto o104 = new OrderDto();
-        o104.id = 104L; o104.tableId = 5L; o104.status = OrderStatus.KUECHE;
-        o104.items.add(new ItemDto("Pizza Diavolo", 1));
-        o104.items.add(new ItemDto("Cola", 2));
-        orders.put(o104.id, o104);
-
-        OrderDto o105 = new OrderDto();
-        o105.id = 105L; o105.tableId = 6L; o105.status = OrderStatus.SERVIERT;
-        o105.items.add(new ItemDto("Wiener Schnitzel", 2));
-        o105.items.add(new ItemDto("Pommes", 2));
-        o105.items.add(new ItemDto("Radler", 2));
-        orders.put(o105.id, o105);
-
-        // Status der Tische initial anhand der Bestellungen konsistent setzen:
-        recalcTableStatusAll();
+    @Autowired
+    public WaiterService(OwnerApiClient ownerApi, CookApiClient cookApi) {
+        this.ownerApi = ownerApi;
+        this.cookApi = cookApi;
     }
 
-    // ---- Öffentliche API für Controller ----
+    /**
+     * Get current waiter state (tables + orders + reservations)
+     */
     public WaiterStateDto getState() {
-        var listTables = new ArrayList<>(tables.values());
-        var listOrders = new ArrayList<>(orders.values());
-        return new WaiterStateDto(listTables, listOrders);
+        System.out.println("Getting waiter state...");
+        
+        // Fetch tables from Owner API
+        List<OwnerApiClient.TableDto> apiTables = ownerApi.getAllTables();
+        System.out.println("Received " + apiTables.size() + " tables from Owner API");
+        
+        List<TableDto> tables = apiTables.stream()
+                .map(this::convertToWaiterTable)
+                .collect(Collectors.toList());
+        System.out.println("Converted to " + tables.size() + " waiter tables");
+
+        // Fetch ALL reservations to get currentReservationId for RESERVED tables
+        List<OwnerApiClient.ReservationDto> allReservations = ownerApi.getAllReservations();
+        System.out.println("Fetched " + allReservations.size() + " total reservations");
+
+        // Update currentReservationId from reservations that have tableId assigned
+        for (OwnerApiClient.ReservationDto res : allReservations) {
+            if (res.tableId != null && ("PENDING".equals(res.status) || "CONFIRMED".equals(res.status) || "CHECKED_IN".equals(res.status))) {
+                tables.stream()
+                        .filter(t -> t.id.equals(res.tableId))
+                        .findFirst()
+                        .ifPresent(t -> {
+                            // Update currentReservationId if table doesn't have one yet
+                            if (t.currentReservationId == null) {
+                                t.currentReservationId = res.id;
+                                System.out.println("Set currentReservationId=" + res.id + " for table " + t.id + " from reservation");
+                            }
+                        });
+            }
+        }
+
+        // Fetch orders from Cook API
+        List<CookApiClient.CookOrderDto> cookOrders = cookApi.getActiveOrders();
+        List<OrderDto> orders = cookOrders.stream()
+                .map(this::convertToWaiterOrder)
+                .collect(Collectors.toList());
+
+        return new WaiterStateDto(tables, orders);
     }
 
+    /**
+     * Convert Owner API table to Waiter table DTO
+     */
+    private TableDto convertToWaiterTable(OwnerApiClient.TableDto apiTable) {
+        TableDto table = new TableDto();
+        table.id = apiTable.id;
+        table.name = "Tisch " + apiTable.tableNumber;
+        table.capacity = apiTable.capacity;
+        table.currentReservationId = apiTable.currentReservationId;
+
+        // Debug log for RESERVED tables
+        if ("RESERVED".equals(apiTable.status)) {
+            System.out.println("Table " + apiTable.tableNumber + " is RESERVED with currentReservationId: " + apiTable.currentReservationId);
+        }
+
+        // Map table status from Owner API to Waiter status
+        switch (apiTable.status) {
+            case "AVAILABLE":
+                table.status = TableStatus.LEER;
+                break;
+            case "RESERVED":
+                table.status = TableStatus.RESERVIERT;
+                break;
+            case "OCCUPIED":
+                table.status = TableStatus.BELEGT;
+                break;
+            case "CLEANING":
+                table.status = TableStatus.ABSERVIEREN;
+                break;
+            default:
+                table.status = TableStatus.LEER;
+        }
+
+        return table;
+    }
+
+    /**
+     * Convert Cook API order to Waiter order DTO
+     */
+    private OrderDto convertToWaiterOrder(CookApiClient.CookOrderDto cookOrder) {
+        OrderDto order = new OrderDto();
+        order.id = cookOrder.id;
+
+        // Parse table number to get tableId
+        try {
+            order.tableId = Long.parseLong(cookOrder.tableNumber);
+        } catch (NumberFormatException e) {
+            order.tableId = 0L; // Default if parsing fails
+        }
+
+        // Map Cook status to Waiter status
+        switch (cookOrder.status) {
+            case "PENDING":
+            case "IN_KITCHEN":
+                order.status = OrderStatus.KUECHE;
+                break;
+            case "READY":
+                order.status = OrderStatus.BEREIT;
+                break;
+            case "SERVED":
+                order.status = OrderStatus.SERVIERT;
+                break;
+            default:
+                order.status = OrderStatus.KUECHE;
+        }
+
+        // Map items from Cook API
+        if (cookOrder.items != null && !cookOrder.items.isEmpty()) {
+            for (CookApiClient.OrderItemDto cookItem : cookOrder.items) {
+                order.items.add(new ItemDto(cookItem.name, cookItem.quantity));
+            }
+        } else {
+            // Fallback for old orders without items
+            order.items.add(new ItemDto("Bestellung #" + cookOrder.id, 1));
+        }
+
+        // Map totalPrice
+        order.totalPrice = cookOrder.totalPrice;
+
+        return order;
+    }
+
+    /**
+     * Check-in reservation via Owner API
+     */
+    public OwnerApiClient.ReservationDto checkInReservation(Long reservationId) {
+        return ownerApi.checkIn(reservationId);
+    }
+
+    /**
+     * Complete reservation and free table
+     */
+    public OwnerApiClient.ReservationDto completeReservation(Long reservationId) {
+        return ownerApi.completeReservation(reservationId);
+    }
+
+    /**
+     * Create walk-in (customer without reservation)
+     */
+    public OwnerApiClient.ReservationDto createWalkIn(Long tableId, int numberOfGuests) {
+        return ownerApi.createWalkIn(tableId, numberOfGuests);
+    }
+
+    /**
+     * Process cash payment via Owner API
+     * Completes the reservation after payment
+     */
+    public OwnerApiClient.PaymentDto processCashPayment(Long reservationId, double amount) {
+        OwnerApiClient.PaymentDto payment = ownerApi.processCashPayment(reservationId, amount);
+        
+        // Complete reservation after successful payment
+        if (payment != null) {
+            try {
+                ownerApi.completeReservation(reservationId);
+                System.out.println("Reservation " + reservationId + " completed after payment");
+            } catch (Exception e) {
+                System.err.println("Warning: Could not complete reservation after payment: " + e.getMessage());
+            }
+        }
+        
+        return payment;
+    }
+
+    // ============ ORDER MANAGEMENT ============
+
+    /**
+     * Create new order via Cook API
+     */
+    public CookApiClient.CookOrderDto createOrder(Long tableId, List<CookApiClient.OrderItemDto> items, Double totalPrice) {
+        return cookApi.createOrder(tableId, items, totalPrice);
+    }
+
+    /**
+     * Mark order as served (calls Cook API)
+     */
     public void markOrderServed(Long orderId) {
-        var o = orders.get(orderId);
-        if (o == null) return;
-        o.status = OrderStatus.SERVIERT;
-        recalcTableStatus(o.tableId);
+        cookApi.markOrderAsServed(orderId);
+        System.out.println("Order " + orderId + " marked as served via Cook API");
     }
 
-    /** „Tisch abservieren“ = Gäste fertig, Kellner markiert, Tisch muss abgeräumt werden */
+    /**
+     * Clear table (prepare for cleaning) - calls Owner API
+     */
     public void clearTable(Long tableId) {
-        var t = tables.get(tableId);
-        if (t != null && t.status == TableStatus.ESSEN) {
-            t.status = TableStatus.ABSERVIEREN;
+        OwnerApiClient.TableDto result = ownerApi.clearTable(tableId);
+        if (result != null) {
+            System.out.println("Table " + tableId + " marked for cleaning via Owner API");
+        } else {
+            System.err.println("Failed to mark table " + tableId + " for cleaning");
         }
     }
 
     /**
-     * „Tisch fertig“ = Tisch abgeräumt → LEER
-     * Rückgabewert: true = erfolgreich gesetzt, false = nicht erlaubt (z.B. noch BEREIT-Bestellungen oder falscher Status)
+     * Finish table (mark as available)
+     * Completes the active reservation on this table
      */
     public boolean finishTable(Long tableId) {
-        var t = tables.get(tableId);
-        if (t == null) return false;
-
-        // Wenn es noch Bestellungen mit Status BEREIT für diesen Tisch gibt, darf nicht fertig gesetzt werden.
-        boolean anyReady = orders.values().stream()
-                .anyMatch(o -> Objects.equals(o.tableId, tableId) && o.status == OrderStatus.BEREIT);
-        if (anyReady) {
-            return false; // nicht erlaubt
-        }
-
-        // Nur erlauben, wenn Tisch zuvor abserviert wurde (oder du möchtest weitere Regeln, passe hier an)
-        if (t.status == TableStatus.ABSERVIEREN) {
-            t.status = TableStatus.LEER;
-            return true;
-        }
-
-        // Falls du möchtest, dass finish auch erlaubt ist, wenn keine Bestellungen existieren,
-        // könntest du hier z.B. erlauben, wenn keine Bestellungen vorhanden sind.
-        // Aktuell: nur ABSERVIEREN -> LEER erlaubt.
-        return false;
-    }
-
-    // ---- Hilfslogik für Status-Berechnung ----
-    private void recalcTableStatusAll() {
-        tables.keySet().forEach(this::recalcTableStatus);
-    }
-
-    private void recalcTableStatus(Long tableId) {
-        boolean anyReady = orders.values().stream()
-                .anyMatch(o -> Objects.equals(o.tableId, tableId) && o.status == OrderStatus.BEREIT);
-        boolean anyKitchen = orders.values().stream()
-                .anyMatch(o -> Objects.equals(o.tableId, tableId) && o.status == OrderStatus.KUECHE);
-        boolean allServedOrNone = orders.values().stream()
-                .filter(o -> Objects.equals(o.tableId, tableId))
-                .allMatch(o -> o.status == OrderStatus.SERVIERT);
-
-        var t = tables.get(tableId);
-        if (t == null) return;
-
-        if (anyReady) {
-            t.status = TableStatus.BESTELLUNG_FERTIG;   // To-do für Kellner
-        } else if (anyKitchen) {
-            t.status = TableStatus.BELEGT;              // Gäste warten, Kellner hat kein To-do
-        } else if (allServedOrNone) {
-            // Es gibt entweder keine Bestellungen, oder alle sind serviert → Gäste essen
-            // WICHTIG: Wenn Tisch aktuell ABSERVIEREN oder LEER ist, lassen wir den Status unverändert.
-            if (t.status != TableStatus.ABSERVIEREN && t.status != TableStatus.LEER) {
-                t.status = TableStatus.ESSEN;
+        try {
+            // Find active reservation for this table
+            List<OwnerApiClient.ReservationDto> activeReservations = ownerApi.getActiveReservations();
+            OwnerApiClient.ReservationDto reservation = activeReservations.stream()
+                    .filter(r -> r.tableId != null && r.tableId.equals(tableId))
+                    .findFirst()
+                    .orElse(null);
+            
+            // If there's an active reservation, complete it
+            if (reservation != null) {
+                ownerApi.completeReservation(reservation.id);
+                System.out.println("Completed reservation " + reservation.id + " for table " + tableId);
             }
-        } else {
-            // Fallback
-            t.status = TableStatus.BELEGT;
+            
+            // Always mark table as available
+            OwnerApiClient.TableDto result = ownerApi.markTableAvailable(tableId);
+            if (result != null) {
+                System.out.println("Table " + tableId + " marked as AVAILABLE");
+                return true;
+            } else {
+                System.err.println("Failed to mark table " + tableId + " as available");
+                return false;
+            }
+        } catch (Exception e) {
+            System.err.println("Error finishing table: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
+    }
+
+    /**
+     * Get all active reservations
+     */
+    public List<OwnerApiClient.ReservationDto> getActiveReservations() {
+        return ownerApi.getActiveReservations();
+    }
+
+    /**
+     * Get all tables
+     */
+    public List<OwnerApiClient.TableDto> getAllTables() {
+        return ownerApi.getAllTables();
     }
 }

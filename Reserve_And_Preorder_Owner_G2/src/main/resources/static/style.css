@@ -1,14 +1,31 @@
 body {
     background-image: url("images/Kueche.jpg");
-    background-size: 100%;
-    font-family: Arial, sans-serif;
+    background-size: cover;
+    background-attachment: fixed;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
 }
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
 h1 {
     text-align: center;
-    background-color: blue;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     margin: 0;
-    padding: 10px 0;
+    padding: 20px 0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+h2 {
+    color: #333;
+    margin-top: 20px;
+    margin-bottom: 10px;
 }
 .searchDIV {
     display: flex;
@@ -37,17 +54,40 @@ h1 {
 }
 .reservations {
     display: flex;
-    justify-content: center;
-    gap: 20px;
+    flex-direction: column;
+    gap: 15px;
     margin: 20px auto;
-    max-width: 600px;
+    max-width: 900px;
 }
+
 .reservation {
     background-color: white;
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    min-width: 200px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.reservation:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.reservation.PENDING {
+    border-left: 6px solid #ff9800;
+}
+
+.reservation.CONFIRMED {
+    border-left: 6px solid #4caf50;
+}
+
+.reservation.CHECKED_IN {
+    border-left: 6px solid #2196f3;
+}
+
+.reservation.COMPLETED {
+    opacity: 0.7;
+    border-left: 6px solid #9e9e9e;
 }
 .name {
     font-size: 18px;
@@ -73,4 +113,154 @@ h1 {
 .change-btn {
     background-color: blue;
     color: white;
+}
+
+/* Table Form Styles */
+.add-table-form {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    margin: 20px auto;
+    max-width: 600px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.add-table-form h2 {
+    margin-top: 0;
+    color: #667eea;
+}
+
+.add-table-form input,
+.add-table-form select {
+    padding: 10px;
+    margin: 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.add-table-form input:focus,
+.add-table-form select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.add-table-form button {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.add-table-form button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+}
+
+.toggle-form-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 20px auto;
+    display: block;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.toggle-form-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(245, 87, 108, 0.4);
+}
+
+/* Button Styles */
+.refresh-btn {
+    margin-left: 10px;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.refresh-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    background-color: #666;
+    margin-left: 10px;
+    text-transform: uppercase;
+}
+
+/* Assign Table Section */
+.assign-table {
+    margin-top: 15px;
+    padding: 15px;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-radius: 8px;
+    border: 2px solid #2196f3;
+}
+
+.assign-table strong {
+    color: #1976d2;
+    font-size: 14px;
+}
+
+.assign-table select {
+    padding: 8px 12px;
+    margin: 10px 10px 10px 0;
+    border: 2px solid #2196f3;
+    border-radius: 6px;
+    background: white;
+    font-size: 14px;
+    min-width: 200px;
+}
+
+.assign-table button {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.assign-table button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.4);
+}
+
+/* No Reservations */
+.no-reservations {
+    padding: 60px;
+    text-align: center;
+    color: #999;
+    font-size: 16px;
+    background: white;
+    border-radius: 8px;
+    margin: 20px auto;
+    max-width: 600px;
 }

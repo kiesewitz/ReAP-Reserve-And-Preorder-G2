@@ -22,7 +22,7 @@ public class RestaurantController {
     }
 
     @GetMapping(value = "/restaurant/{id}", produces = "application/json")
-    ResponseEntity<Restaurant> readWidget(@PathVariable(value = "id") Integer id) {
+    ResponseEntity<Restaurant> readWidget(@PathVariable(value = "id") Long id) {
         return ResponseEntity.ok(service.getRestaurant(id));
     }
 
@@ -32,7 +32,7 @@ public class RestaurantController {
     }
 
     @DeleteMapping("/restaurant/{id}")
-    void deleteToDo(@PathVariable(value = "id") int id) {
+    void deleteToDo(@PathVariable(value = "id") Long id) {
         service.deleteRestaurant(id);
     }
 }

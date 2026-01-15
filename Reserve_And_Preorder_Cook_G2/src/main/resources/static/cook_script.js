@@ -7,11 +7,11 @@
  * ==========================================================
  */
 
-const demoMode = true; // <<=== hier umschalten
+const demoMode = false; // <<=== hier umschalten
 
-// Backend URLs
-const GET_ORDERS_URL = "http://localhost:8080/api/orders";
-const POST_DONE_URL  = "http://localhost:8080/api/orders";
+// Backend URLs - Cook App läuft auf 8081
+const GET_ORDERS_URL = "http://localhost:8081/api/orders/active";
+const POST_DONE_URL  = "http://localhost:8081/api/orders";
 
 let orders = [];
 
@@ -28,19 +28,47 @@ async function fetchOrders() {
     }
 
     try {
-        const response = await fetch(GET_ORDERS_URL);
+        const response = await fetch(GET_ORDERS_URL, {
+            cache: 'no-cache',
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
         if (!response.ok) throw new Error("Fehler beim Laden");
         const data = await response.json();
-        orders = Array.isArray(data) ? data : [];
 
-        // Wenn keine Orders im Backend, füge Dummy hinzu
-        if (orders.length === 0) {
-            console.log("Keine Orders im Backend – füge Demo-Order hinzu");
-            orders.push(createDemoOrder("DEMO-1"));
-        }
+        // Convert backend format to frontend format
+        orders = Array.isArray(data) ? data.map(order => {
+            // Build items list from actual items
+            let itemsList = [];
+            if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+                itemsList = order.items.map(item =>
+                    `${item.name} x${item.quantity}`
+                );
+            } else {
+                itemsList = ["Keine Items vorhanden"];
+            }
+
+            return {
+                orderId: order.id,
+                orderTime: order.orderDateTime || new Date().toISOString(),
+                tableNumber: order.tableNumber || "?",
+                items: itemsList,
+                totalPrice: order.totalPrice || "0.00",
+                status: order.status === "PENDING" ? "Pending" :
+                        order.status === "IN_KITCHEN" ? "In Arbeit" :
+                        order.status === "READY" ? "Fertig" : 
+                        order.status === "SERVED" ? "Serviert" : order.status,
+                deliveryTime: order.deliveryTime || new Date().toISOString(),
+                extraInfo: order.specialRequests || ""
+            };
+        }) : [];
+
+        console.log(`${new Date().toLocaleTimeString()} - Loaded ${orders.length} orders from backend`);
     } catch (err) {
-        console.warn("Backend nicht erreichbar – Demo-Daten aktiv");
-        orders = [createDemoOrder("DEMO-LOCAL")];
+        console.warn("Backend nicht erreichbar:", err.message);
+        orders = [];
     }
 
     sortOrders();
@@ -81,7 +109,7 @@ function generateDemoOrders() {
             orders.push(createDemoOrder());
             sortOrders();
             renderOrders();
-            console.log("🧪 Neue Demo-Order hinzugefügt.");
+            console.log("Neue Demo-Order hinzugefuegt.");
         }, 60000);
     }
 
@@ -89,10 +117,10 @@ function generateDemoOrders() {
 }
 
 /**
- * Sortiert Orders nach Lieferzeit (nächste zuerst)
+ * Sortiert Orders nach Bestellzeit (älteste zuerst)
  */
 function sortOrders() {
-    orders.sort((a, b) => new Date(a.deliveryTime) - new Date(b.deliveryTime));
+    orders.sort((a, b) => new Date(a.orderTime) - new Date(b.orderTime));
 }
 
 /**
@@ -110,14 +138,19 @@ function renderOrders() {
     }
 
     for (const order of orders) {
-        if (order.status === "Done" && !showDone) continue;
+        if ((order.status === "Fertig" || order.status === "Done") && !showDone) continue;
 
         const card = document.createElement("div");
         card.className = "order-card";
 
-        const minutesLeft = (new Date(order.deliveryTime) - new Date()) / 60000;
-        if (minutesLeft <= 5 && order.status === "Pending") card.classList.add("urgent");
-        else if (minutesLeft <= 15 && order.status === "Pending") card.classList.add("soon");
+        // Highlight pending orders
+        if (order.status === "Pending") {
+            card.classList.add("urgent");
+        } else if (order.status === "In Arbeit") {
+            card.classList.add("soon");
+        }
+
+        const isDone = order.status === "Fertig" || order.status === "Done";
 
         card.innerHTML = `
       <div class="header">
@@ -126,16 +159,22 @@ function renderOrders() {
       </div>
 
       <div class="info">
-        <p><i class="fas fa-clock"></i> ${new Date(order.deliveryTime).toLocaleTimeString()}</p>
-        <p><i class="fas fa-utensils"></i> ${order.items.join(", ")}</p>
-        <p><i class="fas fa-euro-sign"></i> €${Number(order.totalPrice).toFixed(2)}</p>
-        <p><i class="fas fa-info-circle"></i> ${order.extraInfo || "Keine Zusatzinfo"}</p>
-        <p><i class="fas fa-tag"></i> Status: ${order.status}</p>
+        <p><i class="fas fa-clock"></i> ${new Date(order.orderTime).toLocaleTimeString()}</p>
+        <p class="items-list"><i class="fas fa-utensils"></i> ${order.items.join(", ")}</p>
+        <p><i class="fas fa-euro-sign"></i> <strong>${Number(order.totalPrice).toFixed(2)}</strong></p>
+        ${order.extraInfo ? `<p><i class="fas fa-info-circle"></i> ${order.extraInfo}</p>` : ''}
+        <p class="status-line">
+          <span class="status-badge status-${order.status.toLowerCase().replace(' ', '-')}">
+            ${order.status}
+          </span>
+        </p>
       </div>
 
-      ${order.status !== "Done" ?
-            `<button class="btn" onclick="markAsDone('${order.orderId}')">Erledigt</button>` :
-            `<div class="done">✔️ Erledigt</div>`
+      ${!isDone ?
+            `<button class="btn" onclick="markAsDone('${order.orderId}')">
+              <i class="fas fa-check"></i> Fertig
+            </button>` :
+            `<div class="done">An Kellner uebergeben</div>`
         }
     `;
         container.appendChild(card);
@@ -143,35 +182,37 @@ function renderOrders() {
 }
 
 /**
- * Klick auf "Erledigt" sendet POST an Backend oder markiert lokal
+ * Klick auf "Fertig" sendet POST an Backend oder markiert lokal
  */
 async function markAsDone(orderId) {
-    const order = orders.find(o => o.orderId === orderId);
+    const order = orders.find(o => String(o.orderId) === String(orderId));
     if (!order) return;
 
-    order.status = "Done";
+    order.status = "Fertig";
     renderOrders();
 
     if (demoMode) {
-        console.log(`Demo Mode: Order ${orderId} als erledigt markiert (nicht gesendet).`);
+        console.log(`Demo Mode: Order ${orderId} als fertig markiert (nicht gesendet).`);
         return;
     }
 
     try {
-        const res = await fetch(`${POST_DONE_URL}/${orderId}/done`, {
+        const res = await fetch(`${POST_DONE_URL}/${orderId}/ready`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "Done" })
+            headers: { "Content-Type": "application/json" }
         });
         if (!res.ok) throw new Error(await res.text());
-        console.log(`Order ${orderId} erfolgreich gesendet an ${POST_DONE_URL}/${orderId}/done`);
+        console.log(`Order ${orderId} marked as READY (fertig zum Servieren)`);
     } catch (err) {
         console.error("Fehler beim HTTP-POST:", err.message);
     }
 }
 
-// Automatische Aktualisierung alle 60 Sekunden (nur wenn kein Demo-Modus)
-if (!demoMode) setInterval(fetchOrders, 60000);
+// Automatische Aktualisierung alle 5 Sekunden
+if (!demoMode) {
+    setInterval(fetchOrders, 5000);
+    console.log("Auto-refresh aktiviert: alle 5 Sekunden");
+}
 
 // Initialer Start
 fetchOrders();

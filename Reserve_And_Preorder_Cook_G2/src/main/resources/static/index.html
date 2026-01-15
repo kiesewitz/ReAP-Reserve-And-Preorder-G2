@@ -9,7 +9,10 @@
 <body>
 <header>
     <h1>Küchenbestellungen</h1>
-    <p>Live-Übersicht aller eingehenden Orders</p>
+    <p>Live-Übersicht aller eingehenden Orders (Auto-Refresh alle 5 Sekunden)</p>
+    <button onclick="fetchOrders()" style="margin-top: 10px; padding: 8px 16px; cursor: pointer;">
+        🔄 Jetzt aktualisieren
+    </button>
 </header>
 
 <main id="orders" class="orders-container"></main>
@@ -20,6 +23,6 @@
     </label>
 </footer>
 
-<script src="cook_script.js"></script>
+<script src="cook_script.js?v=2"></script>
 </body>
 </html>

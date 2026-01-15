@@ -1,71 +1,194 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <title>Owner</title>
+    <title>Owner Dashboard</title>
 </head>
 <body>
-<div>
-    <h1>Reservierungen</h1>
-    <div class="searchDIV">
-        <input type="text" placeholder="suchen...">
-        <input type="button" value="Filter">
+<h1>Owner Dashboard</h1>
+
+<div class="container">
+    <button class="toggle-form-btn" onclick="toggleTableForm()">➕ Tisch hinzufügen</button>
+
+    <div id="addTableForm" class="add-table-form" style="display: none;">
+        <h2>Neuen Tisch erstellen</h2>
+        <div>
+            <select id="restaurantSelect">
+                <option value="1">André's Pizzeria</option>
+                <option value="2">Nikita's Meat</option>
+                <option value="3">Mojo's Kebab</option>
+            </select>
+            <input type="text" id="tableNumber" placeholder="Tischnummer (z.B. T1)" />
+            <input type="number" id="tableCapacity" placeholder="Kapazität (Anzahl Plätze)" min="1" max="20" />
+            <button onclick="createTable()">Tisch erstellen</button>
+        </div>
     </div>
-    <div class="reservations">
-        <div class="reservation">
-            <div class="name"><strong>Max Mustermann</strong></div>
-            <div class="time">
-                <span>⏰</span>
-                <span>19:30 Uhr</span>
-            </div>
-            <div class="info">
-                <div class="phone">
-                    <span>📞</span>
-                    <span>+43 660 1234567</span>
-                </div>
-                <div class="email">
-                    <span>✉️</span>
-                    <span>max@mustermann.at</span>
-                </div>
-                <div class="payment">
-                    <span>💳</span>
-                    <span>Mastercard</span>
-                </div>
-                <div class="notes">
-                    <span>📄</span>
-                    <span>Notizen</span>
-                </div>
-                <button class="change-btn">Verändern</button>
-            </div>
-        </div>
-        <div class="reservation">
-            <div class="name"><strong>Lisa Müller</strong></div>
-            <div class="time">
-                <span>⏰</span>
-                <span>20:00 Uhr</span>
-            </div>
-            <div class="info">
-                <div class="phone">
-                    <span>📞</span>
-                    <span>+43 660 7654321</span>
-                </div>
-                <div class="email">
-                    <span>✉️</span>
-                    <span>lisa@mueller.at</span>
-                </div>
-                <div class="payment">
-                    <span>💳</span>
-                    <span>Mastercard</span>
-                </div>
-                <div class="notes">
-                    <span>📄</span>
-                    <span>Geburtstagsfeier</span>
-                </div>
-                <button class="change-btn"  onclick="window.location.href='editReservation/edit.html'">Verändern</button>
-            </div>
-        </div>
+
+    <h2>Reservierungen <button class="refresh-btn" onclick="refreshAll()">🔄</button> <small style="color: #666; font-size: 0.8em;">(Auto-Refresh: 5 Sek.)</small></h2>
+    <div class="searchDIV">
+        <input type="text" id="searchInput" placeholder="suchen..." onkeyup="filterReservations()">
+    </div>
+    <div class="reservations" id="reservationsList">
+        <div class="no-reservations">Lade...</div>
     </div>
 </div>
+<script>
+let allReservations = [], availableTables = [];
+
+function loadTables() {
+    return fetch('http://localhost:8083/api/tables')
+        .then(r => r.json())
+        .then(t => {
+            availableTables = t;
+            console.log('Loaded ' + t.length + ' tables:', t.map(table => `T${table.tableNumber} (${table.status})`).join(', '));
+            return t;
+        })
+        .catch(e => {
+            console.error('Error loading tables:', e);
+            return [];
+        });
+}
+
+function refreshAll() {
+    loadTables().then(() => loadReservations());
+}
+
+function toggleTableForm() {
+    const form = document.getElementById('addTableForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function createTable() {
+    const restaurantId = parseInt(document.getElementById('restaurantSelect').value);
+    const tableNumber = document.getElementById('tableNumber').value;
+    const capacity = parseInt(document.getElementById('tableCapacity').value);
+
+    if (!tableNumber || !capacity) {
+        alert('Bitte alle Felder ausfüllen!');
+        return;
+    }
+
+    const tableData = {
+        restaurantId: restaurantId,
+        tableNumber: tableNumber,
+        capacity: capacity
+    };
+
+    fetch('http://localhost:8083/api/tables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tableData)
+    })
+    .then(r => {
+        if (!r.ok) throw new Error('Fehler beim Erstellen');
+        return r.json();
+    })
+    .then(table => {
+        alert('Tisch erfolgreich erstellt: ' + table.tableNumber);
+        document.getElementById('tableNumber').value = '';
+        document.getElementById('tableCapacity').value = '';
+        toggleTableForm();
+        loadTables();
+    })
+    .catch(err => {
+        console.error('Fehler:', err);
+        alert('Fehler beim Erstellen des Tisches: ' + err.message);
+    });
+}
+
+loadTables();
+
+function loadReservations() {
+    fetch('http://localhost:8083/api/reservations').then(r => r.json()).then(reservations => {
+        allReservations = reservations;
+        displayReservations(reservations);
+    }).catch(e => document.getElementById('reservationsList').innerHTML = '<div class="no-reservations">Fehler</div>');
+}
+function displayReservations(reservations) {
+    const container = document.getElementById('reservationsList');
+    if (!reservations.length) { container.innerHTML = '<div class="no-reservations">Keine Reservierungen vorhanden</div>'; return; }
+    reservations.sort((a, b) => new Date(b.reservationDateTime) - new Date(a.reservationDateTime));
+    container.innerHTML = reservations.map(res => {
+        const dt = new Date(res.reservationDateTime);
+
+        // Filter tables: same restaurant, sufficient capacity, and AVAILABLE (or already assigned to this reservation if not COMPLETED)
+        const tables = availableTables.filter(t =>
+            t.restaurantId === res.restaurantId &&
+            t.capacity >= res.numberOfGuests &&
+            (t.status === 'AVAILABLE' || (t.currentReservationId === res.id && res.status !== 'COMPLETED'))
+        );
+
+        const opts = tables.map(t => {
+            const status = t.status === 'AVAILABLE' ? '✓ Verfügbar' : t.status;
+            return `<option value="${t.id}" ${t.id === res.tableId ? 'selected' : ''}>Tisch ${t.tableNumber} (${t.capacity} Plätze) - ${status}</option>`;
+        }).join('');
+
+        const show = res.status === 'PENDING' || res.status === 'CONFIRMED';
+        const tableAssigned = res.tableId ? availableTables.find(t => t.id === res.tableId)?.tableNumber || res.tableId : null;
+        const tableInfo = tableAssigned ? `Tisch ${tableAssigned} (✓ Zugewiesen)` : 'Kein Tisch zugewiesen';
+
+        // Show assignment UI only if no table is assigned yet
+        const canAssignTable = show && !res.tableId;
+        const alreadyAssigned = show && res.tableId;
+
+        return `<div class="reservation ${res.status}">
+            <div class="name"><strong>Reservierung #${res.id}</strong><span class="status-badge">${res.status}</span></div>
+            <div class="time"><span>⏰</span><span>${dt.toLocaleDateString('de-DE')} - ${dt.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</span></div>
+            <div class="info">
+                <div class="phone"><span>📍</span><span>Restaurant #${res.restaurantId}</span></div>
+                <div class="email"><span>👥</span><span>${res.numberOfGuests} Gäste</span></div>
+                <div class="payment"><span>🪑</span><span>${tableInfo}</span></div>
+                <div class="notes"><span>📄</span><span>${res.durationMinutes} Min | ${res.groupReservation ? 'Gruppe' : 'Einzel'}</span></div>
+                ${alreadyAssigned ? `<div class="assign-table" style="background: #e8f5e9; border-left: 4px solid #4CAF50;"><strong>✓ Tisch bereits zugewiesen</strong><br><small>Tisch ${tableAssigned} ist für diese Reservierung reserviert</small></div>` : ''}
+                ${canAssignTable && opts ? `<div class="assign-table"><strong>Tisch zuweisen:</strong><br><br><select id="table-select-${res.id}"><option value="">-- Tisch wählen --</option>${opts}</select><button onclick="assignTable(${res.id})">Zuweisen</button></div>` : ''}
+                ${canAssignTable && !opts ? `<div class="assign-table"><strong>⚠️ Keine passenden Tische verfügbar</strong><br><small>Bitte erst Tische für Restaurant #${res.restaurantId} erstellen</small></div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+function assignTable(reservationId) {
+    const selectElement = document.getElementById(`table-select-${reservationId}`);
+    const tableId = selectElement.value;
+    if (!tableId) { alert('Bitte Tisch wählen'); return; }
+    
+    // Disable button during request
+    const button = selectElement.nextElementSibling;
+    button.disabled = true;
+    button.textContent = 'Wird zugewiesen...';
+    
+    fetch(`http://localhost:8083/api/tables/${tableId}/assign/${reservationId}`, {method: 'POST'})
+        .then(r => { 
+            if (!r.ok) {
+                if (r.status === 400) {
+                    throw new Error('Tisch ist bereits einer anderen Reservierung zugewiesen');
+                }
+                throw new Error('Fehler bei Zuweisung'); 
+            }
+            return r.json(); 
+        })
+        .then(() => { 
+            alert("✓ Tisch zugewiesen!"); 
+            // Reload tables and reservations to update UI
+            return loadTables();
+        })
+        .then(() => loadReservations())
+        .catch((err) => {
+            alert('❌ ' + err.message);
+            button.disabled = false;
+            button.textContent = 'Zuweisen';
+            // Reload to show current state
+            loadTables().then(() => loadReservations());
+        });
+}
+function filterReservations() {
+    const term = document.getElementById('searchInput').value.toLowerCase();
+    displayReservations(allReservations.filter(r => r.id.toString().includes(term) || r.status.toLowerCase().includes(term)));
+}
+loadReservations();
+setInterval(() => { loadTables().then(() => loadReservations()); }, 5000);
+console.log('Owner Dashboard: Auto-refresh aktiviert (alle 5 Sekunden)');
+</script>
 </body>
 </html>

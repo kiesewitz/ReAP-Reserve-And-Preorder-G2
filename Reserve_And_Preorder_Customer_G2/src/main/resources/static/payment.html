@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Zahlung</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .payment-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .payment-method {
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .payment-method:hover {
+            border-color: #4CAF50;
+            background: #f9f9f9;
+        }
+        .payment-method.selected {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+        .payment-form {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        .payment-form input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .btn-pay {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-pay:hover {
+            background: #45a049;
+        }
+        .btn-pay:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .success {
+            color: green;
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            padding: 20px;
+        }
+        .reservation-info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<p class="bigtitle">Zahlung</p>
+
+<div class="payment-container">
+    <div id="reservationInfo" class="reservation-info">
+        <p><strong>Reservierungs-ID:</strong> <span id="resId">-</span></p>
+        <p><strong>Betrag:</strong> <span id="amount">-</span> €</p>
+    </div>
+
+    <h3>Zahlungsmethode wählen:</h3>
+
+    <div class="payment-method" data-method="credit-card">
+        <h4>💳 Kreditkarte (Demo)</h4>
+        <p>Visa, Mastercard, Amex</p>
+    </div>
+
+    <div class="payment-method" data-method="paypal">
+        <h4>🅿️ PayPal (Demo)</h4>
+        <p>Sichere Zahlung über PayPal</p>
+    </div>
+
+    <div class="payment-method" data-method="cash">
+        <h4>💵 Bar (Beim Personal bezahlen)</h4>
+        <p>Zahlung direkt im Restaurant</p>
+    </div>
+
+    <div id="paymentForm" class="payment-form" style="display: none;">
+        <div id="creditCardForm" style="display: none;">
+            <input type="text" id="cardNumber" placeholder="Kartennummer (z.B. 4242 4242 4242 4242)">
+            <input type="text" id="cardExpiry" placeholder="Ablaufdatum (MM/YY)">
+            <input type="text" id="cardCvc" placeholder="CVC (123)">
+        </div>
+
+        <div id="paypalForm" style="display: none;">
+            <input type="email" id="paypalEmail" placeholder="PayPal E-Mail-Adresse">
+        </div>
+
+        <div id="cashInfo" style="display: none;">
+            <p>Sie haben Bar-Zahlung gewählt. Bitte bezahlen Sie beim Personal im Restaurant.</p>
+            <p><em>Hinweis: Diese Option wird normalerweise vom Kellner ausgewählt.</em></p>
+        </div>
+
+        <button id="btnPay" class="btn-pay">Jetzt bezahlen</button>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+        <p>⏳ Zahlung wird verarbeitet...</p>
+    </div>
+
+    <div id="success" class="success" style="display: none;">
+        <p>✓ Zahlung erfolgreich!</p>
+        <p>Transaktions-ID: <span id="transactionId"></span></p>
+    </div>
+
+    <div id="error" class="error" style="display: none;">
+        <p>✗ Zahlung fehlgeschlagen</p>
+        <p id="errorMessage"></p>
+    </div>
+</div>
+
+<script>
+    // Get reservation ID from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const reservationId = urlParams.get('reservationId');
+    const amount = urlParams.get('amount') || '45.50'; // Default amount for demo
+
+    if (!reservationId) {
+        alert('Keine Reservierungs-ID angegeben!');
+    }
+
+    // Display reservation info
+    document.getElementById('resId').textContent = reservationId;
+    document.getElementById('amount').textContent = amount;
+
+    let selectedMethod = null;
+
+    // Payment method selection
+    document.querySelectorAll('.payment-method').forEach(method => {
+        method.addEventListener('click', () => {
+            // Remove previous selection
+            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+
+            // Select this method
+            method.classList.add('selected');
+            selectedMethod = method.getAttribute('data-method');
+
+            // Show payment form
+            document.getElementById('paymentForm').style.display = 'block';
+
+            // Hide all forms
+            document.getElementById('creditCardForm').style.display = 'none';
+            document.getElementById('paypalForm').style.display = 'none';
+            document.getElementById('cashInfo').style.display = 'none';
+
+            // Show relevant form
+            if (selectedMethod === 'credit-card') {
+                document.getElementById('creditCardForm').style.display = 'block';
+            } else if (selectedMethod === 'paypal') {
+                document.getElementById('paypalForm').style.display = 'block';
+            } else if (selectedMethod === 'cash') {
+                document.getElementById('cashInfo').style.display = 'block';
+            }
+        });
+    });
+
+    // Payment button
+    document.getElementById('btnPay').addEventListener('click', async () => {
+        if (!selectedMethod) {
+            alert('Bitte wählen Sie eine Zahlungsmethode!');
+            return;
+        }
+
+        // Prepare payment request
+        let apiUrl = '';
+        let requestBody = {
+            reservationId: parseInt(reservationId),
+            amount: parseFloat(amount)
+        };
+
+        if (selectedMethod === 'credit-card') {
+            const cardNumber = document.getElementById('cardNumber').value;
+            if (!cardNumber) {
+                alert('Bitte geben Sie eine Kartennummer ein!');
+                return;
+            }
+            apiUrl = 'http://localhost:8083/api/payments/credit-card';
+            requestBody.token = cardNumber; // In real app, this would be a tokenized card
+        } else if (selectedMethod === 'paypal') {
+            const email = document.getElementById('paypalEmail').value;
+            if (!email) {
+                alert('Bitte geben Sie Ihre PayPal E-Mail ein!');
+                return;
+            }
+            apiUrl = 'http://localhost:8083/api/payments/paypal';
+            requestBody.token = email;
+        } else if (selectedMethod === 'cash') {
+            apiUrl = 'http://localhost:8083/api/payments/cash';
+        }
+
+        // Show loading
+        document.getElementById('paymentForm').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('success').style.display = 'none';
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                throw new Error('Zahlung fehlgeschlagen');
+            }
+
+            const payment = await response.json();
+
+            // Show success
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('success').style.display = 'block';
+            document.getElementById('transactionId').textContent = payment.transactionId;
+
+            // Redirect after 3 seconds
+            setTimeout(() => {
+                window.location.href = '/reserve.html';
+            }, 3000);
+
+        } catch (error) {
+            // Show error
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('errorMessage').textContent = error.message;
+            document.getElementById('paymentForm').style.display = 'block';
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,13 +1,30 @@
 package at.htlle.reserve_and_preorder_g2.pojo;
 
-public class Restaurant {
-    int id;
-    String restaurantName;
-    String description;
-    String address;
-    String phoneNumber;
+import jakarta.persistence.*;
 
-    public Restaurant(int id, String restaurantName, String description, String address, String phoneNumber) {
+@Entity
+@Table(name = "restaurants")
+public class Restaurant {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "restaurant_name", nullable = false, length = 200)
+    private String restaurantName;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "address", length = 500)
+    private String address;
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
+    public Restaurant() {}
+
+    public Restaurant(Long id, String restaurantName, String description, String address, String phoneNumber) {
         this.id = id;
         this.restaurantName = restaurantName;
         this.description = description;
@@ -15,11 +32,11 @@ public class Restaurant {
         this.phoneNumber = phoneNumber;
     }
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

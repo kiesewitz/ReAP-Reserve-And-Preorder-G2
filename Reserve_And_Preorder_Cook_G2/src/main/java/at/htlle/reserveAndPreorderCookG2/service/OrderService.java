@@ -1,82 +1,169 @@
 package at.htlle.reserveAndPreorderCookG2.service;
 
-import at.htlle.reserveandpreordercookg2.model.Order;
+import at.htlle.reserveAndPreorderCookG2.model.Order;
+import at.htlle.reserveAndPreorderCookG2.repository.OrderRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class OrderService {
 
-    private final Map<String, Order> orders = new ConcurrentHashMap<>();
+    private final OrderRepository orderRepository;
 
-    //Flag, um Demo-Modus zu aktivieren/deaktivieren
-    private boolean demoMode = true;
+    // Flag for demo mode (auto-generate orders) - DISABLED by default
+    private boolean demoMode = false;
 
-    public OrderService() {
-        // Startorder – wird immer angezeigt
-        Order example = new Order(
-                "100",
-                LocalDateTime.now(),
-                4,
-                List.of("Burger", "Fries"),
-                15.90,
-                "Pending",
-                LocalDateTime.now().plusMinutes(12),
-                "Keine Zwiebeln bitte"
-        );
-        orders.put(example.getOrderId(), example);
+    @Autowired
+    public OrderService(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+        System.out.println("Order service initialized. Current orders: " + orderRepository.count());
     }
 
+    /**
+     * Get all orders (for cook dashboard)
+     */
     public List<Order> getAllOrders() {
-        return new ArrayList<>(orders.values());
+        return orderRepository.findAll();
     }
 
-    public boolean markAsDone(String id) {
-        Order order = orders.get(id);
-        if (order != null) {
-            order.setStatus("Done");
-            return true;
+    /**
+     * Get only active orders (PENDING and IN_KITCHEN)
+     */
+    public List<Order> getActiveOrders() {
+        return orderRepository.findActiveOrders();
+    }
+
+    /**
+     * Get orders for waiter (PENDING, IN_KITCHEN, and READY)
+     */
+    public List<Order> getWaiterOrders() {
+        return orderRepository.findWaiterOrders();
+    }
+
+    /**
+     * Get orders by status
+     */
+    public List<Order> getOrdersByStatus(String status) {
+        return orderRepository.findByStatus(status);
+    }
+
+    /**
+     * Get order by ID
+     */
+    public Order getOrderById(Long id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+    }
+
+    /**
+     * Create new order
+     */
+    @Transactional
+    public Order createOrder(Order order) {
+        if (order.getStatus() == null) {
+            order.setStatus("PENDING");
         }
-        return false;
+        Order saved = orderRepository.save(order);
+        System.out.println("Order created: " + saved);
+        return saved;
     }
 
-    public void addOrder(Order order) {
-        orders.put(order.getOrderId(), order);
+    /**
+     * Mark order as "IN_KITCHEN" (cook started working on it)
+     */
+    @Transactional
+    public Order markAsInKitchen(Long id) {
+        Order order = getOrderById(id);
+        order.setStatus("IN_KITCHEN");
+        Order updated = orderRepository.save(order);
+        System.out.println("Order " + id + " marked as IN_KITCHEN");
+        return updated;
     }
 
-    // 👇 Umschalten des Demo-Modus (z. B. per REST)
+    /**
+     * Mark order as "READY" (cook finished, ready for serving)
+     */
+    @Transactional
+    public Order markAsReady(Long id) {
+        Order order = getOrderById(id);
+        order.setStatus("READY");
+        order.setDeliveryTime(LocalDateTime.now());
+        Order updated = orderRepository.save(order);
+        System.out.println("Order " + id + " marked as READY");
+        return updated;
+    }
+
+    /**
+     * Mark order as "SERVED" (waiter delivered to customer)
+     */
+    @Transactional
+    public Order markAsServed(Long id) {
+        Order order = getOrderById(id);
+        order.setStatus("SERVED");
+        Order updated = orderRepository.save(order);
+        System.out.println("Order " + id + " marked as SERVED");
+        return updated;
+    }
+
+    /**
+     * Cancel order
+     */
+    @Transactional
+    public Order cancelOrder(Long id) {
+        Order order = getOrderById(id);
+        order.setStatus("CANCELLED");
+        Order updated = orderRepository.save(order);
+        System.out.println("Order " + id + " cancelled");
+        return updated;
+    }
+
+    /**
+     * Legacy method for backward compatibility - mark as done (maps to READY)
+     */
+    @Transactional
+    public boolean markAsDone(String id) {
+        try {
+            Long orderId = Long.parseLong(id);
+            markAsReady(orderId);
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error marking order as done: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Toggle demo mode
+     */
     public void setDemoMode(boolean demoMode) {
         this.demoMode = demoMode;
+        System.out.println("Demo mode set to: " + demoMode);
     }
 
-    //Wird jede Minute ausgeführt (1000 * 60 ms)
+    /**
+     * Auto-generate demo orders every minute (only in demo mode)
+     */
     @Scheduled(fixedRate = 60000)
+    @Transactional
     public void generateDemoOrder() {
-        if (!demoMode) return; // Nur wenn aktiv
+        if (!demoMode) return;
 
         Random random = new Random();
-        int id = random.nextInt(9000) + 1000;
+        int tableNum = random.nextInt(10) + 1;
+        double price = Math.round((Math.random() * 30 + 10) * 100.0) / 100.0;
 
-        List<String> items = new ArrayList<>(List.of("Pizza", "Salat", "Pasta", "Wasser", "Burger"));
-        Collections.shuffle(items);
+        Order demo = new Order(null, String.valueOf(tableNum), BigDecimal.valueOf(price));
+        demo.setStatus("PENDING");
+        demo.setSpecialRequests("Demo Order automatisch erzeugt");
+        demo.setDeliveryTime(LocalDateTime.now().plusMinutes(random.nextInt(20) + 5));
 
-        Order demo = new Order(
-                "DEMO-" + id,
-                LocalDateTime.now(),
-                random.nextInt(10) + 1,
-                items.subList(0, 2),
-                Math.round((Math.random() * 30 + 10) * 100.0) / 100.0,
-                "Pending",
-                LocalDateTime.now().plusMinutes(random.nextInt(20) + 5),
-                "Demo Order automatisch erzeugt"
-        );
-
-        orders.put(demo.getOrderId(), demo);
-        System.out.println("Neue Demo-Order erstellt: " + demo.getOrderId());
+        orderRepository.save(demo);
+        System.out.println("🍳 Neue Demo-Order erstellt: Tisch " + tableNum + ", " + price + "€");
     }
-
 }

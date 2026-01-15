@@ -16,6 +16,7 @@ header { background:#2b2f42; color:#fff; padding:20px 30px; font-size:26px; font
 .badge { padding:6px 12px; border-radius:999px; font-size:14px; font-weight:500; }
 .status-BESTELLUNG_FERTIG { background:#d4f7e7; color:#157347; }
 .status-BELEGT            { background:#fff3cd; color:#856404; }
+.status-RESERVIERT        { background:#cfe2ff; color:#084298; }
 .status-LEER              { background:#dbeafe; color:#1e3a8a; }
 .status-ESSEN             { background:#ede9fe; color:#5b21b6; }
 .status-ABSERVIEREN       { background:#ffe5e5; color:#a50000; }
@@ -33,3 +34,168 @@ button { cursor:pointer; border:none; border-radius:10px; background:#2b2f42; co
 button:hover { opacity:0.9; }
 .btn-gray { background:#6c757d; }
 .btn-green { background:#198754; }
+.btn-blue { background:#0d6efd; }
+.btn-orange { background:#fd7e14; }
+.btn-red { background:#dc3545; }
+
+/* Status badges for orders */
+.status-PENDING { background:#fff3cd; color:#856404; }
+.status-IN_KITCHEN { background:#cfe2ff; color:#084298; }
+.status-BEREIT, .status-READY { background:#d4edda; color:#155724; }
+.status-SERVIERT, .status-SERVED { background:#e2e3e5; color:#383d41; }
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: #2b2f42;
+    color: #fff;
+}
+
+.modal-header h3 { margin: 0; font-size: 20px; }
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+.modal-close:hover { opacity: 0.8; }
+
+.modal-body {
+    padding: 20px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    background: #f8f9fc;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Order Item List */
+.order-item-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f8f9fc;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.order-item-entry .item-name { flex: 1; font-weight: 500; }
+.order-item-entry .item-qty { color: #666; }
+.order-item-entry .btn-remove {
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.add-item-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+.add-item-row input[type="text"] { flex: 2; min-width: 150px; }
+.add-item-row input[type="number"] { width: 80px; }
+input[type="text"], input[type="number"] {
+    font-size: 16px;
+    padding: 10px 12px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+}
+
+.price-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 2px solid #eee;
+}
+
+.price-row label { font-weight: 600; font-size: 16px; }
+.price-row input { width: 120px; font-size: 18px; font-weight: 600; }
+
+/* View Orders Modal */
+.order-detail-card {
+    background: #f8f9fc;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border-left: 4px solid #2b2f42;
+}
+
+.order-detail-card.status-BEREIT,
+.order-detail-card.status-READY { border-left-color: #198754; }
+.order-detail-card.status-PENDING { border-left-color: #fd7e14; }
+
+.order-detail-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.order-detail-items { font-size: 15px; color: #555; }
+.order-detail-price { font-weight: 600; margin-top: 8px; }
+
+/* Table card button layout */
+.table-card .btn-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.table-card .btn-row-inline {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Disabled button */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* No items message */
+.no-items { color: #999; font-style: italic; padding: 12px; text-align: center; }
