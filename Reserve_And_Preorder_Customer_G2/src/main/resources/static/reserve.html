@@ -30,69 +30,81 @@
             <div class="reserve-form">
               <input type="datetime-local" class="datetime-input" placeholder="Datum & Uhrzeit" required>
               <input type="number" class="guests-input" placeholder="Anzahl Gäste" min="1" max="20" required>
-              <label>
-                <input type="checkbox" class="group-checkbox"> Gruppenreservierung
-              </label>
-              <div class="group-emails" style="display: none;">
-                <textarea class="group-emails-textarea" placeholder="E-Mail-Adressen der Gäste (eine pro Zeile)"></textarea>
-              </div>
+                            <input type="tel" class="group-phone-input" placeholder="Telefonnummer für Rückruf" required inputmode="tel">
               <button class="reserve-btn" data-restaurant-id="${r.id}">Reservieren</button>
             </div>
           `;
                 container.appendChild(card);
 
                 // Event listeners for this card
-                const groupCheckbox = card.querySelector('.group-checkbox');
-                const groupEmailsDiv = card.querySelector('.group-emails');
                 const reserveBtn = card.querySelector('.reserve-btn');
+                const phoneInput = card.querySelector('.group-phone-input');
 
-                // Toggle group emails visibility
-                groupCheckbox.addEventListener('change', (e) => {
-                    groupEmailsDiv.style.display = e.target.checked ? 'block' : 'none';
+                // Hide phone input when logged in
+                const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+                if (isLoggedIn) {
+                    phoneInput.style.display = 'none';
+                    phoneInput.removeAttribute('required');
+                }
+
+                phoneInput.addEventListener('input', () => {
+                    phoneInput.value = formatPhoneNumber(phoneInput.value);
                 });
+
+                // Restore draft (if any)
+                const draftKey = `reserveDraft-${r.id}`;
+                const draft = localStorage.getItem(draftKey);
+                if (draft) {
+                    try {
+                        const data = JSON.parse(draft);
+                        if (data.datetime) card.querySelector('.datetime-input').value = data.datetime;
+                        if (data.guests) card.querySelector('.guests-input').value = data.guests;
+                        if (data.phone) card.querySelector('.group-phone-input').value = data.phone;
+                    } catch (e) {
+                        // ignore
+                    }
+                }
 
                 // Handle reservation submission
                 reserveBtn.addEventListener('click', () => {
                     const datetime = card.querySelector('.datetime-input').value;
                     const guests = card.querySelector('.guests-input').value;
-                    const isGroup = groupCheckbox.checked;
                     const restaurantId = reserveBtn.getAttribute('data-restaurant-id');
+                    const phoneValue = card.querySelector('.group-phone-input').value.trim();
 
                     if (!datetime || !guests) {
                         alert('Bitte füllen Sie alle Felder aus!');
                         return;
                     }
 
+                    if (!isLoggedIn) {
+                        // Save draft and redirect to login
+                        localStorage.setItem(draftKey, JSON.stringify({
+                            datetime,
+                            guests,
+                            phone: phoneValue
+                        }));
+                        window.location.href = `login.html?returnUrl=${encodeURIComponent(window.location.pathname + '?restaurant=' + restaurantId)}`;
+                        return;
+                    }
+
+
                     // Prepare reservation data
                     // Convert datetime-local format to ISO-8601 format with seconds
                     const isoDateTime = datetime + ':00'; // Add seconds
 
+                    const customerId = parseInt(localStorage.getItem('customerId') || '1');
                     const reservationData = {
-                        customerId: 1, // TODO: Replace with actual customer ID from login
+                        customerId: customerId,
                         restaurantId: parseInt(restaurantId),
                         reservationDateTime: isoDateTime,
-                        numberOfGuests: parseInt(guests)
+                        numberOfGuests: parseInt(guests),
+                        isGroupReservation: false,
+                        phoneNumber: isLoggedIn ? (localStorage.getItem('customerPhone') || null) : phoneValue
                     };
 
-                    let apiUrl = 'http://localhost:8083/api/reservations';
+                    const apiUrl = 'http://localhost:8083/api/reservations';
                     let requestBody = reservationData;
-
-                    // If group reservation, prepare group request
-                    if (isGroup) {
-                        const emailsText = card.querySelector('.group-emails-textarea').value;
-                        const guestEmails = emailsText.split('\n').filter(e => e.trim().length > 0);
-
-                        if (guestEmails.length === 0) {
-                            alert('Bitte geben Sie E-Mail-Adressen für die Gruppenmitglieder ein!');
-                            return;
-                        }
-
-                        apiUrl = 'http://localhost:8083/api/reservations/group';
-                        requestBody = {
-                            reservation: reservationData,
-                            guestEmails: guestEmails
-                        };
-                    }
 
                     // Submit reservation
                     fetch(apiUrl, {
@@ -109,14 +121,9 @@
                         return response.json();
                     })
                     .then(reservation => {
-                        alert(`Reservierung erfolgreich erstellt!\n\nReservierungs-ID: ${reservation.id}\nStatus: ${reservation.status}\nTisch: ${reservation.tableId || 'Noch nicht zugewiesen'}`);
-
-                        // Clear form
-                        card.querySelector('.datetime-input').value = '';
-                        card.querySelector('.guests-input').value = '';
-                        groupCheckbox.checked = false;
-                        groupEmailsDiv.style.display = 'none';
-                        card.querySelector('.group-emails-textarea').value = '';
+                        localStorage.removeItem(draftKey);
+                        // Direkt zur Vorbestellung weiterleiten
+                        window.location.href = `preorder.html?reservationId=${reservation.id}&restaurantId=${restaurantId}&datetime=${encodeURIComponent(isoDateTime)}&guests=${guests}`;
                     })
                     .catch(err => {
                         console.error('Fehler:', err);
@@ -126,6 +133,24 @@
             });
         })
         .catch(err => console.error("Fehler beim Laden:", err));
+
+    function formatPhoneNumber(value) {
+        if (!value) return '';
+        const hasPlus = value.trim().startsWith('+');
+        const digits = value.replace(/\D/g, '');
+        const parts = [];
+        let i = 0;
+        const groups = [2, 3, 3, 4];
+        for (const g of groups) {
+            if (i >= digits.length) break;
+            parts.push(digits.slice(i, i + g));
+            i += g;
+        }
+        if (i < digits.length) {
+            parts.push(digits.slice(i));
+        }
+        return (hasPlus ? '+' : '') + parts.join(' ');
+    }
 </script>
 </body>
 </html>

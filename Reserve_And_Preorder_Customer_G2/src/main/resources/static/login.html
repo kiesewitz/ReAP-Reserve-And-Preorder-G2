@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Login / Registrieren</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<p class="bigtitle">Anmelden</p>
+
+<div class="account-tabs">
+    <button class="tab-btn active" id="tabLogin">Login</button>
+    <button class="tab-btn" id="tabRegister">Registrieren</button>
+</div>
+
+<div class="auth-container">
+    <div class="account-card" id="loginCard">
+        <h2>Login</h2>
+        <p class="account-hint">Melde dich mit E‑Mail und Passwort an.</p>
+        <input type="email" id="loginEmail" placeholder="E‑Mail">
+        <input type="password" id="loginPassword" placeholder="Passwort">
+        <button class="btn gray-btn" id="loginBtn">Einloggen</button>
+        <div class="account-id">Status: <span id="loginStatus">–</span></div>
+    </div>
+
+    <div class="account-card" id="registerCard" style="display:none;">
+        <h2>Konto erstellen</h2>
+        <p class="account-hint">Erstelle ein Konto mit E‑Mail und Passwort.</p>
+        <input type="text" id="customerName" placeholder="Name">
+        <input type="email" id="customerEmail" placeholder="E‑Mail">
+        <input type="tel" id="customerPhone" placeholder="Telefonnummer (optional)" inputmode="tel">
+        <input type="password" id="customerPassword" placeholder="Passwort wählen">
+        <button class="btn blue-btn" id="createAccountBtn">Konto erstellen</button>
+    </div>
+</div>
+
+<script>
+function setLoginStatus(isLoggedIn) {
+    const email = localStorage.getItem('customerEmail');
+    document.getElementById('loginStatus').textContent = isLoggedIn
+        ? `Eingeloggt${email ? ' (' + email + ')' : ''}`
+        : 'Ausgeloggt';
+}
+
+function switchTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('loginCard').style.display = isLogin ? 'block' : 'none';
+    document.getElementById('registerCard').style.display = isLogin ? 'none' : 'block';
+    document.getElementById('tabLogin').classList.toggle('active', isLogin);
+    document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+}
+
+function createAccount() {
+    const name = document.getElementById('customerName').value.trim();
+    const email = document.getElementById('customerEmail').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    const password = document.getElementById('customerPassword').value.trim();
+
+    if (!name || !email || !password) {
+        alert('Bitte Name, E‑Mail und Passwort ausfüllen.');
+        return;
+    }
+
+    const id = Date.now();
+    localStorage.setItem('customerId', id);
+    localStorage.setItem('customerName', name);
+    localStorage.setItem('customerEmail', email);
+    localStorage.setItem('customerPassword', password);
+    if (phone) localStorage.setItem('customerPhone', phone);
+    localStorage.setItem('isLoggedIn', 'true');
+
+    setLoginStatus(true);
+    window.open('account.html', '_blank');
+    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+    window.location.href = returnUrl || 'reserve.html';
+}
+
+function login() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    const storedEmail = localStorage.getItem('customerEmail');
+    const storedPassword = localStorage.getItem('customerPassword');
+    if (!email || !password) {
+        alert('Bitte E‑Mail und Passwort eingeben.');
+        return;
+    }
+    if (storedEmail !== email || storedPassword !== password) {
+        alert('Login fehlgeschlagen.');
+        return;
+    }
+
+    localStorage.setItem('isLoggedIn', 'true');
+    setLoginStatus(true);
+    window.open('account.html', '_blank');
+    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+    window.location.href = returnUrl || 'reserve.html';
+}
+
+setLoginStatus(localStorage.getItem('isLoggedIn') === 'true');
+
+document.getElementById('loginBtn').addEventListener('click', login);
+document.getElementById('createAccountBtn').addEventListener('click', createAccount);
+document.getElementById('tabLogin').addEventListener('click', () => switchTab('login'));
+document.getElementById('tabRegister').addEventListener('click', () => switchTab('register'));
+</script>
+</body>
+</html>

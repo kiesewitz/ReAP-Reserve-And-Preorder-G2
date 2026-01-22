@@ -58,10 +58,18 @@ public class WaiterService {
             }
         }
 
+        // Build reservationId -> tableId mapping (for preorders with TBD tableNumber)
+        Map<Long, Long> reservationToTableId = new HashMap<>();
+        for (OwnerApiClient.ReservationDto res : allReservations) {
+            if (res.id != null && res.tableId != null) {
+                reservationToTableId.put(res.id, res.tableId);
+            }
+        }
+
         // Fetch orders from Cook API
         List<CookApiClient.CookOrderDto> cookOrders = cookApi.getActiveOrders();
         List<OrderDto> orders = cookOrders.stream()
-                .map(this::convertToWaiterOrder)
+                .map(o -> convertToWaiterOrder(o, reservationToTableId))
                 .collect(Collectors.toList());
 
         return new WaiterStateDto(tables, orders);
@@ -73,6 +81,7 @@ public class WaiterService {
     private TableDto convertToWaiterTable(OwnerApiClient.TableDto apiTable) {
         TableDto table = new TableDto();
         table.id = apiTable.id;
+        table.restaurantId = apiTable.restaurantId;
         table.name = "Tisch " + apiTable.tableNumber;
         table.capacity = apiTable.capacity;
         table.currentReservationId = apiTable.currentReservationId;
@@ -106,16 +115,24 @@ public class WaiterService {
     /**
      * Convert Cook API order to Waiter order DTO
      */
-    private OrderDto convertToWaiterOrder(CookApiClient.CookOrderDto cookOrder) {
+    private OrderDto convertToWaiterOrder(CookApiClient.CookOrderDto cookOrder, Map<Long, Long> reservationToTableId) {
         OrderDto order = new OrderDto();
         order.id = cookOrder.id;
+        order.reservationId = cookOrder.reservationId;
 
-        // Parse table number to get tableId
-        try {
-            order.tableId = Long.parseLong(cookOrder.tableNumber);
-        } catch (NumberFormatException e) {
-            order.tableId = 0L; // Default if parsing fails
+        // Parse table number to get tableId (fallback to reservation mapping for preorders)
+        Long tableId = null;
+        if (cookOrder.tableNumber != null) {
+            try {
+                tableId = Long.parseLong(cookOrder.tableNumber);
+            } catch (NumberFormatException ignored) {
+                tableId = null;
+            }
         }
+        if ((tableId == null || tableId <= 0) && cookOrder.reservationId != null) {
+            tableId = reservationToTableId.get(cookOrder.reservationId);
+        }
+        order.tableId = tableId != null ? tableId : 0L;
 
         // Map Cook status to Waiter status
         switch (cookOrder.status) {
@@ -136,7 +153,7 @@ public class WaiterService {
         // Map items from Cook API
         if (cookOrder.items != null && !cookOrder.items.isEmpty()) {
             for (CookApiClient.OrderItemDto cookItem : cookOrder.items) {
-                order.items.add(new ItemDto(cookItem.name, cookItem.quantity));
+                order.items.add(new ItemDto(cookItem.name, cookItem.quantity, cookItem.unitPrice));
             }
         } else {
             // Fallback for old orders without items
@@ -190,13 +207,32 @@ public class WaiterService {
         return payment;
     }
 
+    /**
+     * Process credit card payment via Owner API
+     * Completes the reservation after payment
+     */
+    public OwnerApiClient.PaymentDto processCardPayment(Long reservationId, double amount, String token) {
+        OwnerApiClient.PaymentDto payment = ownerApi.processCreditCardPayment(reservationId, amount, token);
+
+        if (payment != null) {
+            try {
+                ownerApi.completeReservation(reservationId);
+                System.out.println("Reservation " + reservationId + " completed after card payment");
+            } catch (Exception e) {
+                System.err.println("Warning: Could not complete reservation after card payment: " + e.getMessage());
+            }
+        }
+
+        return payment;
+    }
+
     // ============ ORDER MANAGEMENT ============
 
     /**
      * Create new order via Cook API
      */
-    public CookApiClient.CookOrderDto createOrder(Long tableId, List<CookApiClient.OrderItemDto> items, Double totalPrice) {
-        return cookApi.createOrder(tableId, items, totalPrice);
+    public CookApiClient.CookOrderDto createOrder(Long tableId, Long reservationId, List<CookApiClient.OrderItemDto> items, Double totalPrice) {
+        return cookApi.createOrder(tableId, reservationId, items, totalPrice);
     }
 
     /**

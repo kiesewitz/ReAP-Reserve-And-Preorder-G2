@@ -106,6 +106,26 @@ public class WaiterController {
         }
     }
 
+    /**
+     * Process credit card payment
+     * Body: { "reservationId": 123, "amount": 45.50, "token": "tok_visa" }
+     */
+    @PostMapping("/payments/credit-card")
+    public ResponseEntity<OwnerApiClient.PaymentDto> processCardPayment(
+            @RequestBody Map<String, Object> request) {
+        try {
+            Long reservationId = Long.valueOf(request.get("reservationId").toString());
+            double amount = Double.parseDouble(request.get("amount").toString());
+            String token = request.get("token") != null ? request.get("token").toString() : "tok_waiter";
+
+            OwnerApiClient.PaymentDto payment = service.processCardPayment(reservationId, amount, token);
+            return ResponseEntity.ok(payment);
+        } catch (Exception e) {
+            System.err.println("Card payment error: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     // ============ TABLE MANAGEMENT ============
 
     /**
@@ -146,6 +166,10 @@ public class WaiterController {
     @PostMapping("/orders")
     public ResponseEntity<CookApiClient.CookOrderDto> createOrder(@RequestBody Map<String, Object> request) {
         Long tableId = Long.valueOf(request.get("tableId").toString());
+        Long reservationId = null;
+        if (request.get("reservationId") != null) {
+            reservationId = Long.valueOf(request.get("reservationId").toString());
+        }
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> itemsList = (List<Map<String, Object>>) request.get("items");
 
@@ -159,10 +183,13 @@ public class WaiterController {
         for (Map<String, Object> itemMap : itemsList) {
             String name = itemMap.get("name").toString();
             int qty = Integer.parseInt(itemMap.get("qty").toString());
-            items.add(new CookApiClient.OrderItemDto(name, qty));
+            Long menuItemId = itemMap.get("menuItemId") != null ? Long.valueOf(itemMap.get("menuItemId").toString()) : null;
+            Double unitPrice = itemMap.get("unitPrice") != null ? Double.valueOf(itemMap.get("unitPrice").toString()) : null;
+            String specialInstructions = itemMap.get("specialInstructions") != null ? itemMap.get("specialInstructions").toString() : null;
+            items.add(new CookApiClient.OrderItemDto(name, qty, menuItemId, unitPrice, specialInstructions));
         }
 
-        CookApiClient.CookOrderDto order = service.createOrder(tableId, items, totalPrice);
+        CookApiClient.CookOrderDto order = service.createOrder(tableId, reservationId, items, totalPrice);
         if (order != null) {
             return ResponseEntity.ok(order);
         } else {

@@ -1,6 +1,7 @@
 package at.htlle.reserveAndPreorderCookG2.controller;
 
 import at.htlle.reserveAndPreorderCookG2.dto.CreateOrderRequest;
+import at.htlle.reserveAndPreorderCookG2.dto.PreorderRequest;
 import at.htlle.reserveAndPreorderCookG2.service.OrderService;
 import at.htlle.reserveAndPreorderCookG2.model.Order;
 import at.htlle.reserveAndPreorderCookG2.model.OrderItem;
@@ -75,6 +76,9 @@ public class OrderController {
     public ResponseEntity<Order> createOrder(@RequestBody CreateOrderRequest request) {
         // Create order from request
         Order order = new Order();
+        if (request.getReservationId() != null) {
+            order.setReservationId(request.getReservationId());
+        }
         order.setTableNumber(String.valueOf(request.getTableId()));
         order.setStatus(request.getStatus() != null ? request.getStatus() : "PENDING");
 
@@ -89,6 +93,15 @@ public class OrderController {
         if (request.getItems() != null) {
             for (CreateOrderRequest.OrderItemDto itemDto : request.getItems()) {
                 OrderItem item = new OrderItem(itemDto.getName(), itemDto.getQuantity());
+                if (itemDto.getMenuItemId() != null) {
+                    item.setMenuItemId(itemDto.getMenuItemId());
+                }
+                if (itemDto.getUnitPrice() != null) {
+                    item.setUnitPrice(BigDecimal.valueOf(itemDto.getUnitPrice()));
+                }
+                if (itemDto.getSpecialInstructions() != null) {
+                    item.setSpecialInstructions(itemDto.getSpecialInstructions());
+                }
                 order.addItem(item);
             }
         }
@@ -169,5 +182,32 @@ public class OrderController {
     public ResponseEntity<String> setDemoMode(@RequestParam boolean enabled) {
         orderService.setDemoMode(enabled);
         return ResponseEntity.ok("Demo mode set to: " + enabled);
+    }
+
+    // ==================== PREORDER ENDPOINTS ====================
+
+    /**
+     * Create a new preorder (from customer during reservation)
+     */
+    @PostMapping("/preorder")
+    public ResponseEntity<Order> createPreorder(@RequestBody PreorderRequest request) {
+        Order preorder = orderService.createPreorder(request);
+        return ResponseEntity.ok(preorder);
+    }
+
+    /**
+     * Get all preorders
+     */
+    @GetMapping("/preorders")
+    public ResponseEntity<List<Order>> getAllPreorders() {
+        return ResponseEntity.ok(orderService.getPreorders());
+    }
+
+    /**
+     * Get orders by reservation ID
+     */
+    @GetMapping("/reservation/{reservationId}")
+    public ResponseEntity<List<Order>> getOrdersByReservation(@PathVariable Long reservationId) {
+        return ResponseEntity.ok(orderService.getOrdersByReservation(reservationId));
     }
 }

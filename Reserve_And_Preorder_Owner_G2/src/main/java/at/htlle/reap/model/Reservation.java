@@ -42,6 +42,9 @@ public class Reservation {
     @Column(name = "is_group_reservation")
     private boolean isGroupReservation = false;
 
+    @Column(name = "phone_number", length = 30)
+    private String phoneNumber;
+
     @Column(name = "qr_code", columnDefinition = "TEXT")
     private String qrCode;
 
@@ -160,6 +163,14 @@ public class Reservation {
         isGroupReservation = groupReservation;
     }
 
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
     public String getQrCode() {
         return qrCode;
     }
@@ -230,6 +241,7 @@ public class Reservation {
                 ", numberOfGuests=" + numberOfGuests +
                 ", status=" + status +
                 ", isGroupReservation=" + isGroupReservation +
+                ", phoneNumber='" + phoneNumber + '\'' +
                 '}';
     }
 }

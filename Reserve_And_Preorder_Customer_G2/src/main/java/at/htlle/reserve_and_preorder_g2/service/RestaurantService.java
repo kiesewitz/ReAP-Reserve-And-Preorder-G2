@@ -20,20 +20,13 @@ public class RestaurantService {
 
     @PostConstruct
     public void initDummyData() {
-        // Nur Dummy-Daten hinzufügen, wenn DB leer ist
-        if (restaurantRepository.count() == 0) {
-            restaurantRepository.save(new Restaurant(null, "André's Pizzeria",
-                "Pizza mit laktosefreiem Käse",
+        // Nur ein Restaurant behalten (Mischung aus allen)
+        if (restaurantRepository.count() != 1) {
+            restaurantRepository.deleteAll();
+            restaurantRepository.save(new Restaurant(null, "ReAP Fusion Kitchen – Pizza • Grill • Kebab",
+                "Laktosefreie Pizza, saftige Fleischgerichte und würziger Kebab – das Beste aus allen drei Küchen vereint",
                 "Mibombostraße 15, 1234 Mibombo City",
                 "+43 677 1233321478"));
-            restaurantRepository.save(new Restaurant(null, "Nikita's Meat",
-                "Essen für Fleischliebhaber",
-                "Mibombostraße 17, 1234 Mibombo City",
-                "+43 677 345543192"));
-            restaurantRepository.save(new Restaurant(null, "Mojo's Kebab",
-                "Kebab mit spezieller Sauce (von Mateusel)",
-                "Clasher-Straße 75, 1234 Mibombo City",
-                "+43 677 094618941"));
         }
     }
 

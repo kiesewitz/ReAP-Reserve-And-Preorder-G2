@@ -147,6 +147,15 @@ public class PaymentController {
         }
     }
 
+    /**
+     * Get payment statistics for dashboard
+     * Returns: totalRevenue, todayRevenue, cashPayments, cardPayments, paymentCount
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getPaymentStats() {
+        return ResponseEntity.ok(paymentService.getPaymentStats());
+    }
+
     // Request DTOs
     public static class CashPaymentRequest {
         private Long reservationId;

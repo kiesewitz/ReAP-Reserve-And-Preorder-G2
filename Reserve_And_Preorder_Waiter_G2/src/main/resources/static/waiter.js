@@ -7,12 +7,27 @@
         finishTable: id => `/api/tables/${id}/finish`,
         checkIn: id => `/api/reservations/${id}/checkin`,
         walkin: `/api/reservations/walkin`,
-        createOrder: '/api/orders'
+        createOrder: '/api/orders',
+        payCash: '/api/payments/cash',
+        payCard: '/api/payments/credit-card'
     };
+
+    const OWNER_API = 'http://localhost:8083/api';
 
     let DATA = { tables: [], orders: [] };
     let currentOrderTableId = null;
     let currentOrderItems = [];
+    let currentOrderTotal = 0;
+    let currentRestaurantId = 1;
+    let currentOrderReservationId = null;
+
+    let currentWalkinTableId = null;
+
+    let currentPaymentTableId = null;
+    let currentPaymentReservationId = null;
+    let currentPaymentTotal = 0;
+
+    const MENU_CACHE = {};
 
     const $ = sel => document.querySelector(sel);
 
@@ -21,35 +36,156 @@
     window.openOrderModal = function(tableId, table) {
         currentOrderTableId = tableId;
         currentOrderItems = [];
+        currentOrderTotal = 0;
+        currentRestaurantId = table?.restaurantId || 1;
+        currentOrderReservationId = table?.currentReservationId || null;
         $('#orderModalTitle').textContent = `Bestellung für ${table?.name || 'Tisch ' + tableId}`;
         $('#orderItemsList').innerHTML = '<div class="no-items">Noch keine Artikel hinzugefügt</div>';
-        $('#newItemName').value = '';
-        $('#newItemQty').value = '1';
-        $('#orderPrice').value = '';
+        $('#menuQty').value = '1';
+        $('#orderTotal').textContent = '€ 0.00';
+        loadMenuForOrder(currentRestaurantId);
         $('#orderModal').style.display = 'flex';
-        $('#newItemName').focus();
+        $('#menuSelect').focus();
     };
 
     window.closeOrderModal = function() {
         $('#orderModal').style.display = 'none';
         currentOrderTableId = null;
         currentOrderItems = [];
+        currentOrderReservationId = null;
     };
 
-    window.addOrderItem = function() {
-        const name = $('#newItemName').value.trim();
-        const qty = parseInt($('#newItemQty').value) || 1;
+    window.openWalkinModal = function(table) {
+        currentWalkinTableId = table.id;
+        $('#walkinTableInfo').textContent = `${table.name} – Plätze: ${table.capacity}`;
+        $('#walkinHint').textContent = '';
+        $('#walkinGuests').value = '';
+        $('#walkinModal').style.display = 'flex';
+        $('#walkinGuests').focus();
+    };
 
-        if (!name) {
-            $('#newItemName').focus();
+    window.closeWalkinModal = function() {
+        $('#walkinModal').style.display = 'none';
+        currentWalkinTableId = null;
+    };
+
+    window.submitWalkin = async function() {
+        if (!currentWalkinTableId) return;
+        const table = DATA.tables.find(t => t.id === currentWalkinTableId);
+        const guests = parseInt($('#walkinGuests').value);
+
+        if (!guests || guests <= 0) {
+            $('#walkinHint').textContent = 'Bitte eine gültige Gästeanzahl eingeben.';
             return;
         }
 
-        currentOrderItems.push({ name, qty });
+        if (table && table.capacity && guests > table.capacity) {
+            $('#walkinHint').textContent = `Zu viele Gäste für diesen Tisch (max. ${table.capacity}).`;
+            return;
+        }
+
+        try {
+            const res = await fetch(API.walkin, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tableId: currentWalkinTableId, numberOfGuests: guests })
+            });
+            if (res.ok) {
+                closeWalkinModal();
+                await load();
+            } else {
+                $('#walkinHint').textContent = 'Fehler beim Registrieren.';
+            }
+        } catch (e) {
+            $('#walkinHint').textContent = 'Verbindungsfehler.';
+        }
+    };
+
+    async function loadMenuForOrder(restaurantId) {
+        const menuSelect = $('#menuSelect');
+        menuSelect.innerHTML = '<option value="">Lade Speisekarte...</option>';
+
+        if (MENU_CACHE[restaurantId]) {
+            renderMenuSelect(MENU_CACHE[restaurantId]);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${OWNER_API}/menu/${restaurantId}/available`);
+            if (!res.ok) throw new Error('Speisekarte konnte nicht geladen werden');
+            const menuItems = await res.json();
+            if (menuItems && menuItems.length > 0) {
+                MENU_CACHE[restaurantId] = menuItems;
+                renderMenuSelect(menuItems);
+            } else if (restaurantId !== 1) {
+                const fallbackRes = await fetch(`${OWNER_API}/menu/1/available`);
+                const fallbackItems = fallbackRes.ok ? await fallbackRes.json() : [];
+                MENU_CACHE[1] = fallbackItems;
+                renderMenuSelect(fallbackItems);
+            } else {
+                renderMenuSelect(menuItems);
+            }
+        } catch (e) {
+            console.error('Fehler beim Laden der Speisekarte:', e);
+            menuSelect.innerHTML = '<option value="">Fehler beim Laden</option>';
+        }
+    }
+
+    function renderMenuSelect(menuItems) {
+        const menuSelect = $('#menuSelect');
+        if (!menuItems || menuItems.length === 0) {
+            menuSelect.innerHTML = '<option value="">Keine Produkte verfügbar</option>';
+            return;
+        }
+
+        const grouped = menuItems.reduce((acc, item) => {
+            const category = item.category || 'Sonstiges';
+            acc[category] = acc[category] || [];
+            acc[category].push(item);
+            return acc;
+        }, {});
+
+        const groupsHtml = Object.keys(grouped).map(category => {
+            const opts = grouped[category]
+                .map(item => `<option value="${item.id}">${item.name} – € ${Number(item.price).toFixed(2)}</option>`)
+                .join('');
+            return `<optgroup label="${category}">${opts}</optgroup>`;
+        }).join('');
+
+        menuSelect.innerHTML = '<option value="">Produkt wählen</option>' + groupsHtml;
+    }
+
+    window.addOrderItem = function() {
+        const menuSelect = $('#menuSelect');
+        const selectedId = menuSelect.value;
+        const qty = parseInt($('#menuQty').value) || 1;
+
+        if (!selectedId) {
+            menuSelect.focus();
+            return;
+        }
+
+        const item = (MENU_CACHE[currentRestaurantId] || []).find(m => String(m.id) === String(selectedId));
+        if (!item) {
+            alert('Bitte ein gültiges Menü-Produkt auswählen.');
+            return;
+        }
+
+        const existing = currentOrderItems.find(i => i.menuItemId === item.id);
+        if (existing) {
+            existing.qty += qty;
+        } else {
+            currentOrderItems.push({
+                menuItemId: item.id,
+                name: item.name,
+                qty,
+                unitPrice: parseFloat(item.price)
+            });
+        }
+
         renderOrderItems();
-        $('#newItemName').value = '';
-        $('#newItemQty').value = '1';
-        $('#newItemName').focus();
+        $('#menuQty').value = '1';
+        menuSelect.focus();
     };
 
     window.removeOrderItem = function(index) {
@@ -61,6 +197,8 @@
         const list = $('#orderItemsList');
         if (currentOrderItems.length === 0) {
             list.innerHTML = '<div class="no-items">Noch keine Artikel hinzugefügt</div>';
+            currentOrderTotal = 0;
+            $('#orderTotal').textContent = '€ 0.00';
             return;
         }
 
@@ -68,21 +206,18 @@
             <div class="order-item-entry">
                 <span class="item-name">${item.name}</span>
                 <span class="item-qty">× ${item.qty}</span>
+                <span class="item-qty">€ ${(item.unitPrice * item.qty).toFixed(2)}</span>
                 <button class="btn-remove" onclick="removeOrderItem(${i})">✕</button>
             </div>
         `).join('');
+
+        currentOrderTotal = currentOrderItems.reduce((sum, item) => sum + (item.unitPrice * item.qty), 0);
+        $('#orderTotal').textContent = `€ ${currentOrderTotal.toFixed(2)}`;
     }
 
     window.submitOrder = async function() {
         if (currentOrderItems.length === 0) {
             alert('Bitte mindestens einen Artikel hinzufügen!');
-            return;
-        }
-
-        const price = parseFloat($('#orderPrice').value);
-        if (isNaN(price) || price <= 0) {
-            alert('Bitte einen gültigen Preis eingeben!');
-            $('#orderPrice').focus();
             return;
         }
 
@@ -92,8 +227,9 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tableId: currentOrderTableId,
+                    reservationId: currentOrderReservationId,
                     items: currentOrderItems,
-                    totalPrice: price
+                    totalPrice: currentOrderTotal
                 })
             });
 
@@ -129,7 +265,7 @@
                     <div class="order-detail-items">
                         ${(o.items||[]).map(i => `• ${i.name} × ${i.qty}`).join('<br>') || 'Keine Items'}
                     </div>
-                    ${o.totalPrice ? `<div class="order-detail-price">€ ${Number(o.totalPrice).toFixed(2)}</div>` : ''}
+                    ${o.totalPrice != null ? `<div class="order-detail-price">€ ${Number(o.totalPrice).toFixed(2)}</div>` : ''}
                 </div>
             `).join('');
         }
@@ -143,13 +279,104 @@
 
     // ============ PAYMENT MODAL ============
 
-    window.openPaymentModal = function(tableName) {
+    window.openPaymentModal = function(tableId, tableName, totalAmount, reservationId) {
+        currentPaymentTableId = tableId;
+        currentPaymentReservationId = reservationId;
+        currentPaymentTotal = totalAmount;
+
         $('#paymentTableInfo').textContent = tableName;
+        $('#paymentTotal').textContent = `€ ${totalAmount.toFixed(2)}`;
+        $('#cashReceived').value = '';
+        $('#changeAmount').textContent = '€ 0.00';
+
+        const methods = document.querySelectorAll('input[name="paymentMethod"]');
+        methods.forEach(m => { if (m.value === 'CARD') m.checked = true; });
+        $('#cashSection').style.display = 'none';
+
+        // Toggle cash section on method change
+        methods.forEach(m => m.onchange = () => {
+            const isCash = document.querySelector('input[name="paymentMethod"]:checked').value === 'CASH';
+            $('#cashSection').style.display = isCash ? 'block' : 'none';
+        });
+
+        $('#cashReceived').oninput = () => {
+            const received = parseFloat($('#cashReceived').value);
+            if (!isNaN(received)) {
+                const change = Math.max(0, received - currentPaymentTotal);
+                $('#changeAmount').textContent = `€ ${change.toFixed(2)}`;
+            } else {
+                $('#changeAmount').textContent = '€ 0.00';
+            }
+        };
+
         $('#paymentModal').style.display = 'flex';
     };
 
     window.closePaymentModal = function() {
         $('#paymentModal').style.display = 'none';
+        currentPaymentTableId = null;
+        currentPaymentReservationId = null;
+        currentPaymentTotal = 0;
+    };
+
+    window.confirmPayment = async function() {
+        const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+        const total = currentPaymentTotal;
+
+        if (!currentPaymentReservationId) {
+            alert('Keine Reservierung für diesen Tisch gefunden.');
+            return;
+        }
+
+        let change = 0;
+
+        if (method === 'CASH') {
+            const received = parseFloat($('#cashReceived').value);
+            if (isNaN(received) || received <= 0) {
+                alert('Bitte den erhaltenen Betrag eingeben.');
+                $('#cashReceived').focus();
+                return;
+            }
+            if (received < total) {
+                alert('Der erhaltene Betrag ist zu niedrig.');
+                $('#cashReceived').focus();
+                return;
+            }
+            change = received - total;
+        }
+
+        try {
+            const endpoint = method === 'CASH' ? API.payCash : API.payCard;
+            const body = {
+                reservationId: currentPaymentReservationId,
+                amount: total,
+                token: method === 'CARD' ? 'tok_waiter' : undefined
+            };
+
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || 'Zahlung fehlgeschlagen');
+            }
+
+            await fetch(API.clearTable(currentPaymentTableId), { method: 'POST' });
+            closePaymentModal();
+            await load();
+
+            if (method === 'CASH') {
+                alert(`Zahlung erfolgreich! Rückgeld: € ${change.toFixed(2)}`);
+            } else {
+                alert('Kartenzahlung erfolgreich!');
+            }
+        } catch (err) {
+            console.error('Payment error:', err);
+            alert('Fehler bei der Bezahlung: ' + err.message);
+        }
     };
 
     // ============ CLEANED MODAL ============
@@ -208,10 +435,6 @@
                     }
                 } else if (t.status === 'BELEGT') {
                     buttonsHtml += `<button class="btn-orange" data-order="${t.id}">+ Bestellung aufnehmen</button>`;
-                    // Only show "Abservieren" if there are READY orders AND there are no unserved orders
-                    if (hasReadyOrder && orderCount === DATA.orders.filter(o => o.tableId === t.id && (o.status === 'BEREIT' || o.status === 'READY')).length) {
-                        buttonsHtml += `<button class="btn-green" data-clear="${t.id}">Fertige Bestellung abholen</button>`;
-                    }
                     // Only show "Bezahlen" if all orders are served (orderCount === 0)
                     if (orderCount === 0) {
                         buttonsHtml += `<button class="btn-blue" data-pay="${t.id}">Bezahlen</button>`;
@@ -242,15 +465,8 @@
             if(b.dataset.walkin) {
                 const tableId = Number(b.dataset.walkin);
                 const table = DATA.tables.find(t => t.id === tableId);
-                const guests = prompt(`Wie viele Gäste am Tisch ${table?.name || tableId}?`);
-                if(guests && !isNaN(guests)) {
-                    const res = await fetch(API.walkin, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ tableId: tableId, numberOfGuests: parseInt(guests) })
-                    });
-                    if(res.ok) await load();
-                    else alert('Fehler beim Registrieren');
+                if (table) {
+                    openWalkinModal(table);
                 }
             }
             if(b.dataset.checkin) {
@@ -302,6 +518,7 @@
                 const tableId = Number(b.dataset.pay);
                 const table = DATA.tables.find(t => t.id === tableId);
                 const tableName = table?.name || 'Tisch ' + tableId;
+                const reservationId = table?.currentReservationId || null;
                 
                 // Check if there are any unserved orders
                 const unservedOrders = DATA.orders.filter(o => 
@@ -316,21 +533,45 @@
                     return;
                 }
                 
-                if (confirm(`Bezahlung für ${tableName} bestätigen?\nTisch wird für Reinigung vorbereitet.`)) {
-                    try {
-                        // Mark table as ready for cleaning
-                        const res = await fetch(API.clearTable(tableId), { method:'POST' });
-                        if (res.ok) {
-                            await load();
-                            openPaymentModal(tableName);
-                        } else {
-                            alert('Fehler bei der Bezahlung');
-                        }
-                    } catch (err) {
-                        console.error('Payment error:', err);
-                        alert('Fehler bei der Bezahlung');
-                    }
+                if (!reservationId) {
+                    alert('Keine Reservierung für diesen Tisch gefunden.');
+                    return;
                 }
+
+                const tableOrders = DATA.orders.filter(o => {
+                    if (reservationId) {
+                        return o.reservationId === reservationId && o.status !== 'CANCELLED';
+                    }
+                    return o.tableId === tableId && o.status !== 'CANCELLED';
+                });
+                console.log('Pay orders for table', tableId, tableOrders);
+                const total = tableOrders.reduce((sum, o) => {
+                    const val = Number(o.totalPrice || 0);
+                    if (!isNaN(val) && val > 0) {
+                        return sum + val;
+                    }
+                    // Fallback: sum items with unitPrice
+                    const itemsTotal = (o.items || []).reduce((s, i) => {
+                        const unit = Number(i.unitPrice || 0);
+                        const qty = Number(i.qty || 0);
+                        return s + (isNaN(unit) ? 0 : unit * qty);
+                    }, 0);
+                    return sum + itemsTotal;
+                }, 0);
+                console.log('Computed total', total);
+
+                if (total <= 0) {
+                    const manual = prompt('Kein gültiger Gesamtbetrag gefunden. Betrag manuell eingeben (€):');
+                    const manualVal = parseFloat(manual);
+                    if (!manual || isNaN(manualVal) || manualVal <= 0) {
+                        alert('Kein gültiger Betrag eingegeben.');
+                        return;
+                    }
+                    openPaymentModal(tableId, tableName, manualVal, reservationId);
+                    return;
+                }
+
+                openPaymentModal(tableId, tableName, total, reservationId);
             }
         };
     }
@@ -368,7 +609,7 @@
                     <span class="badge status-${o.status}">${o.status}</span>
                 </div>
                 <div class="items">${(o.items||[]).map(i=>`• ${i.name} × ${i.qty}`).join('<br>') || 'Keine Items'}</div>
-                ${o.totalPrice ? `<div style="margin-top:8px;font-weight:600;">€ ${Number(o.totalPrice).toFixed(2)}</div>` : ''}
+                ${o.totalPrice != null ? `<div style="margin-top:8px;font-weight:600;">€ ${Number(o.totalPrice).toFixed(2)}</div>` : ''}
                 <div style="text-align:right;margin-top:10px;">
                     ${isReady
                         ? `<button class="btn-green" data-served="${o.id}">✓ Serviert</button>`
@@ -408,7 +649,7 @@
     // Handle Enter key in order modal
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && $('#orderModal').style.display === 'flex') {
-            if (document.activeElement === $('#newItemName') || document.activeElement === $('#newItemQty')) {
+            if (document.activeElement === $('#menuSelect') || document.activeElement === $('#menuQty')) {
                 e.preventDefault();
                 addOrderItem();
             }
@@ -418,6 +659,7 @@
             closeViewOrdersModal();
             closePaymentModal();
             closeCleanedModal();
+            closeWalkinModal();
         }
     });
 

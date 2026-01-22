@@ -27,7 +27,7 @@ public class CookApiClient {
      */
     public List<CookOrderDto> getActiveOrders() {
         try {
-            String url = COOK_API_BASE + "/orders/waiter";
+            String url = COOK_API_BASE + "/orders";
             ResponseEntity<List<CookOrderDto>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
@@ -56,10 +56,11 @@ public class CookApiClient {
     /**
      * Create new order
      */
-    public CookOrderDto createOrder(Long tableId, List<OrderItemDto> items, Double totalPrice) {
+    public CookOrderDto createOrder(Long tableId, Long reservationId, List<OrderItemDto> items, Double totalPrice) {
         try {
             CreateOrderRequest request = new CreateOrderRequest();
             request.tableId = tableId;
+            request.reservationId = reservationId;
             request.items = items;
             request.status = "PENDING";
             request.totalPrice = totalPrice;
@@ -83,9 +84,10 @@ public class CookApiClient {
      */
     public static class CookOrderDto {
         public Long id;
+        public Long reservationId;
         public String tableNumber;
         public String orderDateTime;
-        public String totalPrice;
+        public Double totalPrice;
         public String status; // PENDING, IN_KITCHEN, READY, SERVED
         public String specialRequests;
         public String deliveryTime;
@@ -98,6 +100,9 @@ public class CookApiClient {
     public static class OrderItemDto {
         public String name;
         public int quantity;
+        public Long menuItemId;
+        public Double unitPrice;
+        public String specialInstructions;
 
         public OrderItemDto() {}
 
@@ -105,12 +110,22 @@ public class CookApiClient {
             this.name = name;
             this.quantity = quantity;
         }
+
+        public OrderItemDto(String name, int quantity, Long menuItemId, Double unitPrice, String specialInstructions) {
+            this.name = name;
+            this.quantity = quantity;
+            this.menuItemId = menuItemId;
+            this.unitPrice = unitPrice;
+            this.specialInstructions = specialInstructions;
+        }
+
     }
 
     /**
      * DTO for creating new order
      */
     public static class CreateOrderRequest {
+        public Long reservationId;
         public Long tableId;
         public List<OrderItemDto> items;
         public String status;

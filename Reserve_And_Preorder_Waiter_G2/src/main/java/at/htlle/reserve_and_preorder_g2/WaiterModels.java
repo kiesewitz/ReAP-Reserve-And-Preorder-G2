@@ -24,6 +24,7 @@ public class WaiterModels {
 
     public static class TableDto {
         public Long id;
+        public Long restaurantId;
         public String name;
         public Integer seats;
         public Integer capacity;  // Added for API compatibility
@@ -44,6 +45,7 @@ public class WaiterModels {
     public static class ItemDto {
         public String name;
         public Integer qty;
+        public Double unitPrice;
 
         public ItemDto() {}
 
@@ -51,14 +53,21 @@ public class WaiterModels {
             this.name = name;
             this.qty = qty;
         }
+
+        public ItemDto(String name, Integer qty, Double unitPrice) {
+            this.name = name;
+            this.qty = qty;
+            this.unitPrice = unitPrice;
+        }
     }
 
     public static class OrderDto {
         public Long id;
+        public Long reservationId;
         public Long tableId;
         public OrderStatus status;
         public List<ItemDto> items = new ArrayList<>();
-        public String totalPrice;
+        public Double totalPrice;
     }
 
     public static class WaiterStateDto {

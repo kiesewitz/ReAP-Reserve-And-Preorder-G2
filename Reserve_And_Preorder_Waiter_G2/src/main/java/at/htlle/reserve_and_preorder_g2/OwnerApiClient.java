@@ -138,6 +138,15 @@ public class OwnerApiClient {
         return restTemplate.postForObject(url, request, PaymentDto.class);
     }
 
+    public PaymentDto processCreditCardPayment(Long reservationId, double amount, String token) {
+        String url = OWNER_API_BASE + "/payments/credit-card";
+        OnlinePaymentRequest request = new OnlinePaymentRequest();
+        request.reservationId = reservationId;
+        request.amount = amount;
+        request.token = token;
+        return restTemplate.postForObject(url, request, PaymentDto.class);
+    }
+
     // DTOs for API communication
     public static class ReservationDto {
         public Long id;
@@ -178,6 +187,12 @@ public class OwnerApiClient {
     public static class CashPaymentRequest {
         public Long reservationId;
         public double amount;
+    }
+
+    public static class OnlinePaymentRequest {
+        public Long reservationId;
+        public double amount;
+        public String token;
     }
 
     public static class WalkInRequest {

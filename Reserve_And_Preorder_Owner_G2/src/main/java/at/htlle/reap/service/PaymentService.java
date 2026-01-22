@@ -10,8 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
@@ -79,13 +82,7 @@ public class PaymentService {
             // Simulate payment processing delay
             Thread.sleep(2000);
 
-            // Simulate 5% failure rate for testing
-            if (random.nextInt(100) < 5) {
-                payment.setPaymentStatus(PaymentStatus.FAILED);
-                payment.setTransactionId("FAILED_" + UUID.randomUUID());
-                paymentRepository.save(payment);
-                throw new RuntimeException("Payment declined by card issuer (DEMO)");
-            }
+            // No failure simulation (always succeed in demo)
 
             // Payment successful
             payment.setPaymentStatus(PaymentStatus.COMPLETED);
@@ -217,5 +214,55 @@ public class PaymentService {
     public boolean isReservationPaid(Long reservationId) {
         Payment payment = paymentRepository.findByReservationId(reservationId).orElse(null);
         return payment != null && payment.getPaymentStatus() == PaymentStatus.COMPLETED;
+    }
+
+    /**
+     * Get payment statistics for dashboard
+     */
+    public Map<String, Object> getPaymentStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        List<Payment> allPayments = paymentRepository.findByPaymentStatus(PaymentStatus.COMPLETED);
+
+        // Total revenue
+        BigDecimal totalRevenue = allPayments.stream()
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Today's revenue
+        LocalDate today = LocalDate.now();
+        BigDecimal todayRevenue = allPayments.stream()
+                .filter(p -> p.getPaidAt() != null && p.getPaidAt().toLocalDate().equals(today))
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Cash payments
+        BigDecimal cashPayments = allPayments.stream()
+                .filter(p -> p.getPaymentMethod() == PaymentMethod.CASH)
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Card payments
+        BigDecimal cardPayments = allPayments.stream()
+                .filter(p -> p.getPaymentMethod() == PaymentMethod.CREDIT_CARD)
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Payment count
+        int paymentCount = allPayments.size();
+
+        // Today's payment count
+        long todayCount = allPayments.stream()
+                .filter(p -> p.getPaidAt() != null && p.getPaidAt().toLocalDate().equals(today))
+                .count();
+
+        stats.put("totalRevenue", totalRevenue);
+        stats.put("todayRevenue", todayRevenue);
+        stats.put("cashPayments", cashPayments);
+        stats.put("cardPayments", cardPayments);
+        stats.put("paymentCount", paymentCount);
+        stats.put("todayCount", todayCount);
+
+        return stats;
     }
 }

@@ -40,12 +40,16 @@ async function fetchOrders() {
 
         // Convert backend format to frontend format
         orders = Array.isArray(data) ? data.map(order => {
-            // Build items list from actual items
+            // Build items list from actual items (with prices if available)
             let itemsList = [];
             if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-                itemsList = order.items.map(item =>
-                    `${item.name} x${item.quantity}`
-                );
+                itemsList = order.items.map(item => {
+                    let itemText = `${item.name} x${item.quantity}`;
+                    if (item.unitPrice) {
+                        itemText += ` (${Number(item.unitPrice).toFixed(2)}€)`;
+                    }
+                    return itemText;
+                });
             } else {
                 itemsList = ["Keine Items vorhanden"];
             }
@@ -58,10 +62,12 @@ async function fetchOrders() {
                 totalPrice: order.totalPrice || "0.00",
                 status: order.status === "PENDING" ? "Pending" :
                         order.status === "IN_KITCHEN" ? "In Arbeit" :
-                        order.status === "READY" ? "Fertig" : 
+                        order.status === "READY" ? "Fertig" :
                         order.status === "SERVED" ? "Serviert" : order.status,
                 deliveryTime: order.deliveryTime || new Date().toISOString(),
-                extraInfo: order.specialRequests || ""
+                extraInfo: order.specialRequests || "",
+                isPreorder: order.preorder || false,
+                reservationId: order.reservationId || null
             };
         }) : [];
 
@@ -152,16 +158,30 @@ function renderOrders() {
 
         const isDone = order.status === "Fertig" || order.status === "Done";
 
+        // Preorder Badge HTML
+        const preorderBadge = order.isPreorder ?
+            `<span class="preorder-badge">VORBESTELLUNG</span>` : '';
+
+        // Delivery time for preorders
+        const deliveryInfo = order.isPreorder && order.deliveryTime ?
+            `<p class="delivery-time"><i class="fas fa-calendar-alt"></i> Lieferzeit: ${new Date(order.deliveryTime).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}</p>` : '';
+
+        // Reservation info
+        const reservationInfo = order.reservationId ?
+            `<p><i class="fas fa-bookmark"></i> Reservierung #${order.reservationId}</p>` : '';
+
         card.innerHTML = `
       <div class="header">
-        <div class="order-id">#${order.orderId}</div>
+        <div class="order-id">#${order.orderId} ${preorderBadge}</div>
         <div class="table">Tisch ${order.tableNumber}</div>
       </div>
 
       <div class="info">
-        <p><i class="fas fa-clock"></i> ${new Date(order.orderTime).toLocaleTimeString()}</p>
+        <p><i class="fas fa-clock"></i> Bestellt: ${new Date(order.orderTime).toLocaleTimeString()}</p>
+        ${deliveryInfo}
+        ${reservationInfo}
         <p class="items-list"><i class="fas fa-utensils"></i> ${order.items.join(", ")}</p>
-        <p><i class="fas fa-euro-sign"></i> <strong>${Number(order.totalPrice).toFixed(2)}</strong></p>
+        <p><i class="fas fa-euro-sign"></i> <strong>${Number(order.totalPrice).toFixed(2)} EUR</strong></p>
         ${order.extraInfo ? `<p><i class="fas fa-info-circle"></i> ${order.extraInfo}</p>` : ''}
         <p class="status-line">
           <span class="status-badge status-${order.status.toLowerCase().replace(' ', '-')}">

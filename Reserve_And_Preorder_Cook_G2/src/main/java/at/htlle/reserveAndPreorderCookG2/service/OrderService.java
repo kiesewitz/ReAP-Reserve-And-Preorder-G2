@@ -1,6 +1,8 @@
 package at.htlle.reserveAndPreorderCookG2.service;
 
+import at.htlle.reserveAndPreorderCookG2.dto.PreorderRequest;
 import at.htlle.reserveAndPreorderCookG2.model.Order;
+import at.htlle.reserveAndPreorderCookG2.model.OrderItem;
 import at.htlle.reserveAndPreorderCookG2.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -164,6 +166,64 @@ public class OrderService {
         demo.setDeliveryTime(LocalDateTime.now().plusMinutes(random.nextInt(20) + 5));
 
         orderRepository.save(demo);
-        System.out.println("🍳 Neue Demo-Order erstellt: Tisch " + tableNum + ", " + price + "€");
+        System.out.println("Neue Demo-Order erstellt: Tisch " + tableNum + ", " + price + "€");
+    }
+
+    // ==================== PREORDER METHODS ====================
+
+    /**
+     * Create a preorder from customer reservation
+     */
+    @Transactional
+    public Order createPreorder(PreorderRequest request) {
+        Order preorder = new Order();
+        preorder.setReservationId(request.getReservationId());
+        preorder.setTableNumber(request.getTableNumber() != null ? request.getTableNumber() : "TBD");
+        preorder.setPreorder(true);
+        preorder.setStatus("PENDING");
+        preorder.setSpecialRequests(request.getSpecialRequests());
+        preorder.setDeliveryTime(request.getDeliveryTime());
+
+        // Calculate total price and add items
+        BigDecimal totalPrice = BigDecimal.ZERO;
+
+        if (request.getItems() != null) {
+            for (PreorderRequest.PreorderItemDto itemDto : request.getItems()) {
+                OrderItem item = new OrderItem();
+                item.setName(itemDto.getName());
+                item.setQuantity(itemDto.getQuantity());
+                item.setMenuItemId(itemDto.getMenuItemId());
+                item.setUnitPrice(itemDto.getUnitPrice());
+                item.setSpecialInstructions(itemDto.getSpecialInstructions());
+
+                preorder.addItem(item);
+
+                // Calculate total
+                if (itemDto.getUnitPrice() != null) {
+                    BigDecimal itemTotal = itemDto.getUnitPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
+                    totalPrice = totalPrice.add(itemTotal);
+                }
+            }
+        }
+
+        preorder.setTotalPrice(totalPrice);
+
+        Order saved = orderRepository.save(preorder);
+        System.out.println("Preorder erstellt: Reservierung " + request.getReservationId() + ", Summe: " + totalPrice + "€");
+        return saved;
+    }
+
+    /**
+     * Get all preorders
+     */
+    public List<Order> getPreorders() {
+        return orderRepository.findByIsPreorder(true);
+    }
+
+    /**
+     * Get orders by reservation ID
+     */
+    public List<Order> getOrdersByReservation(Long reservationId) {
+        return orderRepository.findByReservationId(reservationId);
     }
 }

@@ -2,6 +2,7 @@ body {
     background-color: #4525f2;
     color: #FFFFFF;
     font-family: Poppins, serif;
+    overflow-x: hidden;
 }
 
 html {
@@ -188,9 +189,481 @@ html, body {
     border: 1px solid #ccc;
     padding: 8px;
 }
+.reserve-form .group-phone-input {
+    margin-top: 4px;
+}
 .reserve-form button {
     background-color: #4525f2;
     color: white;
     cursor: pointer;
     border: none;
+}
+
+/* ==================== ACCOUNT PAGE ==================== */
+.account-container {
+    max-width: 1100px;
+    margin: 20px auto 60px;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+}
+
+.auth-container {
+    max-width: 520px;
+    margin: 20px auto 60px;
+    padding: 0 20px;
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .account-container { grid-template-columns: 1fr; }
+}
+
+.account-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    color: #333;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.account-card h2 {
+    margin-top: 0;
+}
+
+.account-card input {
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+.account-card input[type="number"] {
+    appearance: textfield;
+}
+
+.account-card input[type="number"]::-webkit-outer-spin-button,
+.account-card input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.account-card .btn {
+    width: 100%;
+    max-width: 420px;
+    margin: 12px 0;
+}
+
+.account-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 10px auto 0;
+}
+
+.tab-btn {
+    background: #f0f0f0;
+    color: #333;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tab-btn.active {
+    background: #4525f2;
+    color: #fff;
+}
+
+.account-hint {
+    color: #666;
+    font-size: 14px;
+}
+
+.account-id {
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.reservations-list {
+    margin-top: 10px;
+}
+
+.reservation-entry {
+    background: #f6f6ff;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.btn-red {
+    background: #dc3545;
+    color: #fff;
+    margin-top: 8px;
+}
+
+/* ==================== PREORDER PAGE STYLES ==================== */
+
+/* Reservierungs-Banner */
+.reservation-banner {
+    background-color: #ffffff;
+    padding: 15px 30px;
+    margin: 20px auto;
+    max-width: 1200px;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.reservation-info {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    color: #333;
+    font-size: 16px;
+}
+
+.reservation-info span {
+    padding: 5px 15px;
+    background-color: #f0f0f0;
+    border-radius: 20px;
+}
+
+/* Preorder Container */
+.preorder-container {
+    display: flex;
+    gap: 30px;
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+/* Menu Section */
+.menu-section {
+    flex: 2;
+    min-width: 0;
+}
+
+.section-title {
+    color: #ffffff;
+    font-size: 28px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.menu-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.menu-category {
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.category-header {
+    color: #ffffff;
+    font-size: 22px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255,255,255,0.3);
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+/* Menu Item Card */
+.menu-item-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 150px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-item-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.menu-item-info {
+    flex: 1;
+}
+
+.menu-item-name {
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.menu-item-description {
+    color: #666;
+    font-size: 13px;
+    margin: 0 0 10px 0;
+    line-height: 1.4;
+}
+
+.menu-item-price {
+    color: #4525f2;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+}
+
+/* Quantity Selector */
+.menu-item-actions {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.quantity-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.qty-btn {
+    width: 35px;
+    height: 35px;
+    border: none;
+    border-radius: 50%;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.qty-btn.minus {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.qty-btn.minus:hover {
+    background-color: #ddd;
+}
+
+.qty-btn.plus {
+    background-color: #4525f2;
+    color: white;
+}
+
+.qty-btn.plus:hover {
+    background-color: #3318c9;
+}
+
+.qty-display {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Cart Section */
+.cart-section {
+    flex: 1;
+    min-width: 320px;
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+}
+
+.cart-container {
+    background-color: #ffffff;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.cart-items {
+    min-height: 100px;
+    max-height: 350px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+.empty-cart-text {
+    color: #999;
+    text-align: center;
+    padding: 30px 0;
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    gap: 10px;
+}
+
+.cart-item-info {
+    flex: 1;
+}
+
+.cart-item-name {
+    color: #333;
+    font-weight: 500;
+    display: block;
+}
+
+.cart-item-qty {
+    color: #666;
+    font-size: 14px;
+}
+
+.cart-item-price {
+    color: #4525f2;
+    font-weight: bold;
+    min-width: 70px;
+    text-align: right;
+}
+
+.cart-item-remove {
+    background: none;
+    border: none;
+    color: #ff4444;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+}
+
+.cart-item-remove:hover {
+    color: #cc0000;
+}
+
+/* Cart Total */
+.cart-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-top: 2px solid #4525f2;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+#cartTotal {
+    color: #4525f2;
+    font-size: 22px;
+}
+
+/* Special Requests */
+.special-requests {
+    margin: 15px 0;
+}
+
+.special-requests label {
+    display: block;
+    color: #333;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.special-requests textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+/* Submit Button */
+.submit-preorder-btn {
+    width: 100%;
+    padding: 15px;
+    background-color: #4525f2;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 10px;
+}
+
+.submit-preorder-btn:hover:not(:disabled) {
+    background-color: #3318c9;
+}
+
+.submit-preorder-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.skip-preorder-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: transparent;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.skip-preorder-btn:hover {
+    background-color: #f5f5f5;
+}
+
+/* Loading and Error Text */
+.loading-text, .error-text {
+    text-align: center;
+    padding: 40px;
+    color: #ffffff;
+}
+
+.error-text {
+    color: #ff6b6b;
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+    .preorder-container {
+        flex-direction: column;
+    }
+
+    .cart-section {
+        position: static;
+        min-width: auto;
+    }
+
+    .menu-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .reservation-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .menu-grid {
+        grid-template-columns: 1fr;
+    }
 }

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Mein Konto</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<p class="bigtitle">Mein Konto</p>
+
+<div class="account-container">
+    <div class="account-card">
+        <h2>Meine Daten</h2>
+        <div class="account-id">Kunden-ID: <span id="customerId">–</span></div>
+        <div class="account-id">Name: <span id="customerName">–</span></div>
+        <div class="account-id">E‑Mail: <span id="customerEmail">–</span></div>
+        <div class="account-id">Telefon: <span id="customerPhone">–</span></div>
+        <button class="btn btn-red" id="logoutBtn">Ausloggen</button>
+    </div>
+
+    <div class="account-card">
+        <h2>Offene Reservierungen</h2>
+        <button class="btn gray-btn" id="loadReservationsBtn">Aktualisieren</button>
+        <div id="openReservations" class="reservations-list"></div>
+    </div>
+
+    <div class="account-card">
+        <h2>Abgeschlossene Reservierungen</h2>
+        <div id="closedReservations" class="reservations-list"></div>
+    </div>
+</div>
+
+<script>
+const OWNER_API = 'http://localhost:8083/api';
+const COOK_API = 'http://localhost:8081/api';
+
+function getCustomerId() {
+    return localStorage.getItem('customerId');
+}
+
+function initAccount() {
+    const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!loggedIn) {
+        alert('Bitte zuerst einloggen.');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    document.getElementById('customerId').textContent = getCustomerId() || '–';
+    document.getElementById('customerName').textContent = localStorage.getItem('customerName') || '–';
+    document.getElementById('customerEmail').textContent = localStorage.getItem('customerEmail') || '–';
+    document.getElementById('customerPhone').textContent = localStorage.getItem('customerPhone') || '–';
+}
+
+function logout() {
+    localStorage.removeItem('isLoggedIn');
+    alert('Ausgeloggt.');
+    window.location.href = 'login.html';
+}
+
+async function loadReservations() {
+    const id = getCustomerId();
+    const openList = document.getElementById('openReservations');
+    const closedList = document.getElementById('closedReservations');
+
+    if (!id) {
+        openList.innerHTML = '<p class="account-hint">Kein Konto vorhanden.</p>';
+        closedList.innerHTML = '';
+        return;
+    }
+
+    try {
+        const res = await fetch(`${OWNER_API}/reservations/customer/${id}`);
+        if (!res.ok) throw new Error('Reservierungen konnten nicht geladen werden');
+        const reservations = await res.json();
+
+        const withOrders = await Promise.all(reservations.map(async r => {
+            let total = 0;
+            try {
+                const oRes = await fetch(`${COOK_API}/orders/reservation/${r.id}`);
+                if (oRes.ok) {
+                    const orders = await oRes.json();
+                    total = orders.reduce((sum, o) => sum + Number(o.totalPrice || 0), 0);
+                }
+            } catch (e) {
+                // ignore
+            }
+            return { ...r, totalPrice: total };
+        }));
+
+        const active = withOrders.filter(r => ['PENDING','CONFIRMED','CHECKED_IN'].includes(r.status));
+        const closed = withOrders.filter(r => ['COMPLETED','CANCELLED','NO_SHOW'].includes(r.status));
+
+        if (active.length === 0) {
+            openList.innerHTML = '<p class="account-hint">Keine offenen Reservierungen.</p>';
+        } else {
+            openList.innerHTML = active.map(r => renderReservation(r, true)).join('');
+        }
+
+        if (closed.length === 0) {
+            closedList.innerHTML = '<p class="account-hint">Keine abgeschlossenen Reservierungen.</p>';
+        } else {
+            closedList.innerHTML = closed.map(r => renderReservation(r, false)).join('');
+        }
+    } catch (e) {
+        openList.innerHTML = '<p class="account-hint">Fehler beim Laden.</p>';
+        closedList.innerHTML = '';
+    }
+}
+
+function renderReservation(r, canCancel) {
+    const date = new Date(r.reservationDateTime);
+    const dateStr = date.toLocaleDateString('de-DE');
+    const timeStr = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    const total = Number(r.totalPrice || 0).toFixed(2);
+    return `
+        <div class="reservation-entry">
+            <div>
+                <strong>#${r.id}</strong> – ${dateStr} ${timeStr} – ${r.numberOfGuests} Gäste
+            </div>
+            <div>Status: ${r.status}</div>
+            <div>Bestellwert: € ${total}</div>
+            ${canCancel ? `<button class="btn btn-red" onclick="cancelReservation(${r.id})">Stornieren</button>` : ''}
+        </div>
+    `;
+}
+
+async function cancelReservation(reservationId) {
+    if (!confirm('Möchtest du die Reservierung wirklich stornieren?')) return;
+
+    try {
+        const res = await fetch(`${OWNER_API}/reservations/${reservationId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Stornierung fehlgeschlagen');
+        const data = await res.json();
+        const fee = data.cancellationFee ? Number(data.cancellationFee).toFixed(2) : '0.00';
+        alert(`Stornierung erfolgreich. Stornogebühr: € ${fee}`);
+        loadReservations();
+    } catch (e) {
+        alert('Fehler: ' + e.message);
+    }
+}
+
+window.cancelReservation = cancelReservation;
+
+// init
+initAccount();
+document.getElementById('loadReservationsBtn').addEventListener('click', loadReservations);
+document.getElementById('logoutBtn').addEventListener('click', logout);
+loadReservations();
+setInterval(loadReservations, 10000);
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) loadReservations();
+});
+</script>
+</body>
+</html>

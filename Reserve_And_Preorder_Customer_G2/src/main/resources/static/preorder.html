@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vorbestellen - REAP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <p class="bigtitle">Vorbestellen</p>
+
+    <!-- Reservierungs-Info Banner -->
+    <div id="reservationBanner" class="reservation-banner">
+        <div class="reservation-info">
+            <span id="reservationDate">Laden...</span>
+            <span id="reservationTime"></span>
+            <span id="reservationGuests"></span>
+        </div>
+    </div>
+
+    <div class="preorder-container">
+        <!-- Speisekarte -->
+        <div class="menu-section">
+            <h2 class="section-title">Speisekarte</h2>
+            <div id="menuContainer" class="menu-container">
+                <!-- Menü wird hier dynamisch geladen -->
+                <p class="loading-text">Speisekarte wird geladen...</p>
+            </div>
+        </div>
+
+        <!-- Warenkorb -->
+        <div class="cart-section">
+            <h2 class="section-title">Ihre Vorbestellung</h2>
+            <div id="cartContainer" class="cart-container">
+                <div id="cartItems" class="cart-items">
+                    <p class="empty-cart-text">Noch keine Gerichte ausgewählt</p>
+                </div>
+                <div class="cart-total">
+                    <span>Gesamtsumme:</span>
+                    <span id="cartTotal">0.00 €</span>
+                </div>
+                <div class="special-requests">
+                    <label for="specialRequests">Besondere Wünsche:</label>
+                    <textarea id="specialRequests" placeholder="Allergien, Sonderwünsche, etc."></textarea>
+                </div>
+                <button id="submitPreorder" class="submit-preorder-btn" disabled>
+                    Vorbestellung abschicken
+                </button>
+                <button id="skipPreorder" class="skip-preorder-btn">
+                    Ohne Vorbestellung fortfahren
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="preorder.js"></script>
+</body>
+</html>

@@ -2,6 +2,7 @@ package at.htlle.reserveAndPreorderCookG2.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "order_items")
@@ -21,6 +22,15 @@ public class OrderItem {
 
     @Column(name = "quantity", nullable = false)
     private int quantity = 1;
+
+    @Column(name = "menu_item_id")
+    private Long menuItemId;
+
+    @Column(name = "unit_price", precision = 10, scale = 2)
+    private BigDecimal unitPrice;
+
+    @Column(name = "special_instructions", columnDefinition = "TEXT")
+    private String specialInstructions;
 
     // Constructors
     public OrderItem() {}
@@ -61,5 +71,29 @@ public class OrderItem {
 
     public void setQuantity(int quantity) {
         this.quantity = quantity;
+    }
+
+    public Long getMenuItemId() {
+        return menuItemId;
+    }
+
+    public void setMenuItemId(Long menuItemId) {
+        this.menuItemId = menuItemId;
+    }
+
+    public BigDecimal getUnitPrice() {
+        return unitPrice;
+    }
+
+    public void setUnitPrice(BigDecimal unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public String getSpecialInstructions() {
+        return specialInstructions;
+    }
+
+    public void setSpecialInstructions(String specialInstructions) {
+        this.specialInstructions = specialInstructions;
     }
 }

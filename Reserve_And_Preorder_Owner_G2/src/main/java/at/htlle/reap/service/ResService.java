@@ -10,6 +10,10 @@ import at.htlle.reap.repository.TableRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -25,6 +29,9 @@ public class ResService {
 
     // Base URL for QR codes (in production, load from configuration)
     private static final String BASE_URL = "http://localhost:8083";
+    private static final String COOK_API_BASE = "http://localhost:8081/api";
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Autowired
     public ResService(ReservationRepository reservationRepository,
@@ -84,7 +91,6 @@ public class ResService {
 
             // Reserve the table
             table.setStatus(TableStatus.RESERVED);
-            table.setCurrentReservationId(reservation.getId());
             tableRepository.save(table);
 
             // Update status to CONFIRMED
@@ -98,6 +104,18 @@ public class ResService {
         String qrToken = qrCodeService.generateCheckinToken(saved.getId(), null);
         saved.setQrCode(qrToken);
         saved = reservationRepository.save(saved);
+
+        // Ensure table has currentReservationId once reservation ID is known
+        if (saved.getTableId() != null) {
+            Table table = tableRepository.findById(saved.getTableId()).orElse(null);
+            if (table != null) {
+                table.setCurrentReservationId(saved.getId());
+                if (table.getStatus() == null || table.getStatus() == TableStatus.AVAILABLE) {
+                    table.setStatus(TableStatus.RESERVED);
+                }
+                tableRepository.save(table);
+            }
+        }
 
         System.out.println("Created reservation: " + saved + " with QR token");
 
@@ -118,6 +136,17 @@ public class ResService {
         }
         
         reservationRepository.save(reservation);
+
+        if (tableId != null) {
+            Table table = tableRepository.findById(tableId).orElse(null);
+            if (table != null) {
+                table.setCurrentReservationId(reservationId);
+                if (table.getStatus() == null || table.getStatus() == TableStatus.AVAILABLE) {
+                    table.setStatus(TableStatus.RESERVED);
+                }
+                tableRepository.save(table);
+            }
+        }
         System.out.println("Updated reservation " + reservationId + " with table " + tableId);
     }
 
@@ -176,7 +205,36 @@ public class ResService {
         }
 
         System.out.println("Cancelled reservation " + id + " with fee: " + fee + "€");
+        cancelCookOrdersForReservation(id);
         return reservationRepository.save(reservation);
+    }
+
+    private void cancelCookOrdersForReservation(Long reservationId) {
+        try {
+            String url = COOK_API_BASE + "/orders/reservation/" + reservationId;
+            ResponseEntity<List<CookOrderDto>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<List<CookOrderDto>>() {}
+            );
+            List<CookOrderDto> orders = response.getBody();
+            if (orders == null || orders.isEmpty()) {
+                return;
+            }
+            for (CookOrderDto order : orders) {
+                if (order != null && order.id != null) {
+                    String cancelUrl = COOK_API_BASE + "/orders/" + order.id;
+                    restTemplate.exchange(cancelUrl, HttpMethod.DELETE, null, Void.class);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Warning: Could not cancel cook orders for reservation " + reservationId + ": " + e.getMessage());
+        }
+    }
+
+    private static class CookOrderDto {
+        public Long id;
     }
 
     /**
