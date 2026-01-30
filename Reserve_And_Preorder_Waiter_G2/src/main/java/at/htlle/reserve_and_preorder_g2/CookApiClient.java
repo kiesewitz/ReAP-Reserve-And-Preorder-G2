@@ -24,10 +24,11 @@ public class CookApiClient {
 
     /**
      * Get all active orders from Cook app (for waiter)
+     * Uses /waiter endpoint which filters PENDING, IN_KITCHEN, READY only
      */
     public List<CookOrderDto> getActiveOrders() {
         try {
-            String url = COOK_API_BASE + "/orders";
+            String url = COOK_API_BASE + "/orders/waiter";
             ResponseEntity<List<CookOrderDto>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,

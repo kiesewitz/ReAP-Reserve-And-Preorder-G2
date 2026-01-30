@@ -297,3 +297,20 @@ button:disabled {
 
 /* No items message */
 .no-items { color: #999; font-style: italic; padding: 12px; text-align: center; }
+
+/* QR-Code Scanner Section - compact layout */
+.qr-scanner-card {
+    grid-column: span 1 !important;
+    max-height: 600px;
+}
+
+#qrReader {
+    max-width: 400px !important;
+    margin: 15px auto !important;
+}
+
+#scanResult {
+    font-size: 14px;
+    max-width: 400px;
+    margin: 10px auto;
+}

@@ -7,26 +7,34 @@
     <!-- Verweis auf das ausgelagerte Stylesheet im selben Verzeichnis -->
     <link rel="stylesheet" href="waiter.css">
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!-- HTML5-QRCode Library for QR-Scanner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 <header>Kellner – Tische & Bestellungen (Auto-Refresh: 5 Sek.)</header>
 
-<div class="container grid">
-    <!-- Tische -->
-    <section class="card">
-        <h2>Tische</h2>
-        <div class="toolbar">
-            <input id="q" type="search" placeholder="Suche Tisch / Bestellung / Item…" />
-            <button id="refreshBtn" class="btn-gray">↻ Aktualisieren</button>
-        </div>
-        <div id="tables" class="table-grid"></div>
-    </section>
+<div class="container">
+    <!-- Grid für Tische und Bestellungen -->
+    <div class="grid">
+        <!-- Tische -->
+        <section class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="margin: 0;">Tische</h2>
+                <button id="openQrScannerBtn" class="btn-blue" style="font-size: 14px; padding: 8px 16px;">📷 QR scannen</button>
+            </div>
+            <div class="toolbar">
+                <input id="q" type="search" placeholder="Suche Tisch / Bestellung / Item…" />
+                <button id="refreshBtn" class="btn-gray">↻ Aktualisieren</button>
+            </div>
+            <div id="tables" class="table-grid"></div>
+        </section>
 
-    <!-- Bestellungen -->
-    <section class="card">
-        <h2>Offene Bestellungen</h2>
-        <div id="orders"></div>
-    </section>
+        <!-- Bestellungen -->
+        <section class="card">
+            <h2>Offene Bestellungen</h2>
+            <div id="orders"></div>
+        </section>
+    </div>
 </div>
 
 <!-- Modal für Bestellung aufnehmen -->
@@ -141,6 +149,24 @@
         </div>
         <div class="modal-footer">
             <button class="btn-blue" onclick="closeCleanedModal()" style="width: 100%;">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal für QR-Code Scanner -->
+<div id="qrScannerModal" class="modal-overlay" style="display:none;">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>📷 QR-Code Scanner</h3>
+            <button class="modal-close" onclick="closeQrScannerModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align: center; padding: 20px;">
+            <div style="margin-bottom: 15px;">
+                <button id="modalStartScanBtn" class="btn-blue">📷 Kamera starten</button>
+                <button id="modalStopScanBtn" class="btn-gray" style="display:none;">⏹ Kamera stoppen</button>
+            </div>
+            <div id="modalQrReader" style="width: 100%; max-width: 500px; margin: 0 auto; display: none;"></div>
+            <div id="modalScanResult" style="margin-top: 15px;"></div>
         </div>
     </div>
 </div>

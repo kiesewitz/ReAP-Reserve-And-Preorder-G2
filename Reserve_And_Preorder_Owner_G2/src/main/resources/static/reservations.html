@@ -106,6 +106,23 @@
         .refresh-btn:hover {
             background-color: #45a049;
         }
+        .btn-reject {
+            background-color: #f44336;
+            margin-left: 10px;
+        }
+        .btn-reject:hover {
+            background-color: #d32f2f;
+        }
+        .no-table-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -218,6 +235,12 @@
                                 </select>
                                 <button onclick="assignTable(${res.id})">Zuweisen</button>
                             </div>
+                            ${!res.tableId ? `
+                                <div class="no-table-warning">
+                                    <span>⚠️ Kein Tisch zugewiesen</span>
+                                    <button class="btn-reject" onclick="rejectReservation(${res.id})">❌ Ablehnen</button>
+                                </div>
+                            ` : ''}
                         ` : ''}
                     </div>
                 `;
@@ -250,6 +273,31 @@
             .catch(err => {
                 console.error('Error assigning table:', err);
                 alert('Fehler beim Zuweisen des Tisches');
+            });
+        }
+
+        // Reject reservation (cancel)
+        function rejectReservation(reservationId) {
+            if (!confirm('Reservierung #' + reservationId + ' wirklich ablehnen?\n\nDer Kunde wird benachrichtigt, dass kein Tisch verfügbar ist.')) {
+                return;
+            }
+
+            fetch(`http://localhost:8083/api/reservations/${reservationId}`, {
+                method: 'DELETE'
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Fehler beim Ablehnen');
+                }
+                return res.json();
+            })
+            .then(() => {
+                alert('Reservierung wurde abgelehnt.');
+                loadReservations();
+            })
+            .catch(err => {
+                console.error('Error rejecting reservation:', err);
+                alert('Fehler beim Ablehnen der Reservierung');
             });
         }
 

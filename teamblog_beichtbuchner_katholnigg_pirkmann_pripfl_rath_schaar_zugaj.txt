@@ -1,29 +1,44 @@
 1. Einheit:
 Einführung, Erstellung Git
 
-Alle Mitglieder anwesend
-
 2. Einheit:
 Überarbeitung User Stories
-
-Pripfl, Rath, Schaar, Wieser, Zugaj anwesend
 
 3. Einheit:
 Erstellung Customer & Chef Page Project mit Spring Boot
 
-Alle Mitglieder anwesend
-
 4. Einheit:
 Arbeit an Customer, Koch, Restaurant Owner und Waiter-App
-
-Katholnigg, Pirkmann, Rath, Schaar, Zugaj anwesend
 
 5. Einheit:
 Weitere Arbeit an Customer, Koch, Restaurant Owner und Waiter-App
 
-Beichtbuchner, Katholnigg, Pirkmann, Rath, Schaar, Zugaj anwesend
-
 6. Einheit:
 Vorbereitung auf Release
 
-Beichtbuchner, Pirkmann, Pripfl, Rath, Schaar anwesend
+7. Einheit:
+Implementierung QR-Code-Generierung für Reservierungen
+
+8. Einheit:
+Arbeit an Menüverwaltung und Filteroptionen
+
+9. Einheit:
+Entwicklung der Waiter-App Tischübersicht
+
+10. Einheit:
+Testing und Bugfixing der Reservierungsfunktion
+
+11. Einheit:
+Integration der Benachrichtigungsfunktionen
+
+12. Einheit:
+Implementierung Gruppenreservierung und QR-Code-Sharing
+
+13. Einheit:
+Arbeit an Koch-Dashboard und Bestellanzeige
+
+14. Einheit:
+Testing der kompletten User Journey
+
+15. Einheit:
+Code Review und Vorbereitung Sprint-Review

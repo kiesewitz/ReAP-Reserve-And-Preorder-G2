@@ -37,9 +37,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findActiveOrders();
 
     /**
-     * Find orders for waiter view (PENDING, IN_KITCHEN, READY)
+     * Find orders for waiter view (all except CANCELLED)
      */
-    @Query("SELECT o FROM Order o WHERE o.status IN ('PENDING', 'IN_KITCHEN', 'READY') ORDER BY o.orderDateTime ASC")
+    @Query("SELECT o FROM Order o WHERE o.status NOT IN ('CANCELLED') ORDER BY o.orderDateTime ASC")
     List<Order> findWaiterOrders();
 
     /**

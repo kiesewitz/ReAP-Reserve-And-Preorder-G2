@@ -19,7 +19,8 @@
         <p class="account-hint">Melde dich mit E‑Mail und Passwort an.</p>
         <input type="email" id="loginEmail" placeholder="E‑Mail">
         <input type="password" id="loginPassword" placeholder="Passwort">
-        <button class="btn gray-btn" id="loginBtn">Einloggen</button>
+        <button class="btn blue-btn" id="loginBtn" style="width: 100%;">Einloggen</button>
+        <div id="loginError" style="color: red; margin-top: 10px; display: none;"></div>
         <div class="account-id">Status: <span id="loginStatus">–</span></div>
     </div>
 
@@ -28,9 +29,10 @@
         <p class="account-hint">Erstelle ein Konto mit E‑Mail und Passwort.</p>
         <input type="text" id="customerName" placeholder="Name">
         <input type="email" id="customerEmail" placeholder="E‑Mail">
-        <input type="tel" id="customerPhone" placeholder="Telefonnummer (optional)" inputmode="tel">
-        <input type="password" id="customerPassword" placeholder="Passwort wählen">
-        <button class="btn blue-btn" id="createAccountBtn">Konto erstellen</button>
+        <input type="tel" id="customerPhone" placeholder="Telefonnummer" inputmode="tel" required>
+        <input type="password" id="customerPassword" placeholder="Passwort wählen (mind. 6 Zeichen)">
+        <button class="btn blue-btn" id="createAccountBtn" style="width: 100%;">Konto erstellen</button>
+        <div id="registerError" style="color: red; margin-top: 10px; display: none;"></div>
     </div>
 </div>
 
@@ -50,51 +52,118 @@ function switchTab(tab) {
     document.getElementById('tabRegister').classList.toggle('active', !isLogin);
 }
 
-function createAccount() {
+async function createAccount() {
     const name = document.getElementById('customerName').value.trim();
     const email = document.getElementById('customerEmail').value.trim();
     const phone = document.getElementById('customerPhone').value.trim();
     const password = document.getElementById('customerPassword').value.trim();
 
-    if (!name || !email || !password) {
-        alert('Bitte Name, E‑Mail und Passwort ausfüllen.');
+    const errorDiv = document.getElementById('registerError');
+    errorDiv.style.display = 'none';
+
+    if (!name || !email || !phone || !password) {
+        errorDiv.textContent = 'Bitte alle Felder ausfüllen.';
+        errorDiv.style.display = 'block';
         return;
     }
 
-    const id = Date.now();
-    localStorage.setItem('customerId', id);
-    localStorage.setItem('customerName', name);
-    localStorage.setItem('customerEmail', email);
-    localStorage.setItem('customerPassword', password);
-    if (phone) localStorage.setItem('customerPhone', phone);
-    localStorage.setItem('isLoggedIn', 'true');
+    if (password.length < 6) {
+        errorDiv.textContent = 'Passwort muss mindestens 6 Zeichen lang sein.';
+        errorDiv.style.display = 'block';
+        return;
+    }
 
-    setLoginStatus(true);
-    window.open('account.html', '_blank');
-    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
-    window.location.href = returnUrl || 'reserve.html';
+    // Email-Format-Validierung
+    if (!email.match(/^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/)) {
+        errorDiv.textContent = 'Ungültiges E-Mail-Format.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    // Telefonnummer-Validierung (muss + und Ziffern enthalten)
+    if (!phone.match(/^\+?[0-9\s-]{6,}$/)) {
+        errorDiv.textContent = 'Ungültige Telefonnummer. Format: +43 123 456 7890';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:8083/api/customers/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password, phoneNumber: phone })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            errorDiv.textContent = data.error || 'Registrierung fehlgeschlagen';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Erfolgreiche Registrierung - speichere Daten
+        localStorage.setItem('customerId', data.id);
+        localStorage.setItem('customerName', data.name);
+        localStorage.setItem('customerEmail', data.email);
+        localStorage.setItem('customerPhone', data.phoneNumber);
+        localStorage.setItem('isLoggedIn', 'true');
+
+        setLoginStatus(true);
+        alert('Konto erfolgreich erstellt!');
+
+        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+        window.location.href = returnUrl || 'reserve.html';
+    } catch (err) {
+        errorDiv.textContent = 'Fehler bei der Verbindung zum Server.';
+        errorDiv.style.display = 'block';
+    }
 }
 
-function login() {
+async function login() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
 
-    const storedEmail = localStorage.getItem('customerEmail');
-    const storedPassword = localStorage.getItem('customerPassword');
+    const errorDiv = document.getElementById('loginError');
+    errorDiv.style.display = 'none';
+
     if (!email || !password) {
-        alert('Bitte E‑Mail und Passwort eingeben.');
-        return;
-    }
-    if (storedEmail !== email || storedPassword !== password) {
-        alert('Login fehlgeschlagen.');
+        errorDiv.textContent = 'Bitte E‑Mail und Passwort eingeben.';
+        errorDiv.style.display = 'block';
         return;
     }
 
-    localStorage.setItem('isLoggedIn', 'true');
-    setLoginStatus(true);
-    window.open('account.html', '_blank');
-    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
-    window.location.href = returnUrl || 'reserve.html';
+    try {
+        const response = await fetch('http://localhost:8083/api/customers/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            errorDiv.textContent = 'Login fehlgeschlagen. Bitte überprüfen Sie Ihre E-Mail und Passwort.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Erfolgreicher Login - speichere Daten
+        localStorage.setItem('customerId', data.id);
+        localStorage.setItem('customerName', data.name);
+        localStorage.setItem('customerEmail', data.email);
+        localStorage.setItem('customerPhone', data.phoneNumber || '');
+        localStorage.setItem('isLoggedIn', 'true');
+
+        setLoginStatus(true);
+        alert('Login erfolgreich!');
+
+        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+        window.location.href = returnUrl || 'reserve.html';
+    } catch (err) {
+        errorDiv.textContent = 'Fehler bei der Verbindung zum Server. Bitte versuchen Sie es später erneut.';
+        errorDiv.style.display = 'block';
+    }
 }
 
 setLoginStatus(localStorage.getItem('isLoggedIn') === 'true');

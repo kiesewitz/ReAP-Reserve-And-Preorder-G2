@@ -8,6 +8,10 @@
 <body>
 <p class="bigtitle">Mein Konto</p>
 
+<div style="text-align: center; margin-bottom: 20px;">
+    <button class="btn gray-btn" onclick="window.location.href='index.html'" style="font-size: 16px; padding: 10px 20px;">← Zurück zur Übersicht</button>
+</div>
+
 <div class="account-container">
     <div class="account-card">
         <h2>Meine Daten</h2>
@@ -113,6 +117,10 @@ function renderReservation(r, canCancel) {
     const dateStr = date.toLocaleDateString('de-DE');
     const timeStr = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     const total = Number(r.totalPrice || 0).toFixed(2);
+
+    // QR-Code Button nur für CONFIRMED und PENDING Reservierungen
+    const showQR = ['CONFIRMED', 'PENDING'].includes(r.status);
+
     return `
         <div class="reservation-entry">
             <div>
@@ -120,6 +128,7 @@ function renderReservation(r, canCancel) {
             </div>
             <div>Status: ${r.status}</div>
             <div>Bestellwert: € ${total}</div>
+            ${showQR ? `<button class="btn btn-blue" onclick="showQRCode(${r.id})">QR-Code anzeigen</button>` : ''}
             ${canCancel ? `<button class="btn btn-red" onclick="cancelReservation(${r.id})">Stornieren</button>` : ''}
         </div>
     `;
@@ -140,7 +149,41 @@ async function cancelReservation(reservationId) {
     }
 }
 
+async function showQRCode(reservationId) {
+    try {
+        const res = await fetch(`${OWNER_API}/qr/reservation/${reservationId}`);
+        if (!res.ok) throw new Error('QR-Code konnte nicht geladen werden');
+        const qrData = await res.json();
+
+        // Modal mit QR-Code erstellen und anzeigen
+        const modal = document.createElement('div');
+        modal.className = 'qr-modal';
+        modal.innerHTML = `
+            <div class="qr-modal-content">
+                <span class="qr-close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+                <h2>Check-In QR-Code</h2>
+                <p>Zeigen Sie diesen QR-Code beim Restaurant vor</p>
+                <img src="${qrData.dataUrl}" alt="QR-Code" style="width: 300px; height: 300px; margin: 20px 0;">
+                <p><small>Reservierung #${reservationId}</small></p>
+                <button class="btn gray-btn" onclick="this.parentElement.parentElement.remove()">Schließen</button>
+            </div>
+        `;
+
+        // Click außerhalb des Modals schließt es
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+
+        document.body.appendChild(modal);
+    } catch (e) {
+        alert('Fehler beim Laden des QR-Codes: ' + e.message);
+    }
+}
+
 window.cancelReservation = cancelReservation;
+window.showQRCode = showQRCode;
 
 // init
 initAccount();

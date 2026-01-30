@@ -259,9 +259,14 @@ public class ResService {
     public Reservation checkIn(Long reservationId) {
         Reservation reservation = getReservationById(reservationId);
 
-        if (reservation.getStatus() != ReservationStatus.CONFIRMED && 
+        // Check if already checked in
+        if (reservation.getStatus() == ReservationStatus.CHECKED_IN) {
+            throw new RuntimeException("QR-Code bereits verwendet. Diese Reservierung wurde bereits eingecheckt.");
+        }
+
+        if (reservation.getStatus() != ReservationStatus.CONFIRMED &&
             reservation.getStatus() != ReservationStatus.PENDING) {
-            throw new RuntimeException("Cannot check-in reservation with status: " + reservation.getStatus());
+            throw new RuntimeException("Check-in nicht möglich. Reservierungsstatus: " + reservation.getStatus());
         }
 
         // Check if table is assigned

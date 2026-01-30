@@ -29,6 +29,108 @@
 
     const MENU_CACHE = {};
 
+    // QR Code Scanner (Modal)
+    let html5QrCode = null;
+    let isScanning = false;
+
+    function openQrScannerModal() {
+        $('#qrScannerModal').style.display = 'flex';
+    }
+
+    function closeQrScannerModal() {
+        if (isScanning) {
+            stopQRScanner();
+        }
+        $('#qrScannerModal').style.display = 'none';
+        $('#modalScanResult').innerHTML = '';
+    }
+
+    function startQRScanner() {
+        if (isScanning) return;
+
+        const qrReaderDiv = $('#modalQrReader');
+        qrReaderDiv.style.display = 'block';
+        $('#modalStartScanBtn').style.display = 'none';
+        $('#modalStopScanBtn').style.display = 'inline-block';
+
+        html5QrCode = new Html5Qrcode("modalQrReader");
+
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => handleQRCodeScan(decodedText),
+            (errorMessage) => { /* Ignore scan errors */ }
+        ).then(() => {
+            isScanning = true;
+        }).catch((err) => {
+            $('#modalScanResult').innerHTML =
+                '<p style="color:red; background: #ffebee; padding: 10px; border-radius: 5px;">Kamera konnte nicht gestartet werden: ' + err + '</p>';
+        });
+    }
+
+    function stopQRScanner() {
+        if (!html5QrCode || !isScanning) return;
+
+        html5QrCode.stop().then(() => {
+            isScanning = false;
+            $('#modalQrReader').style.display = 'none';
+            $('#modalStartScanBtn').style.display = 'inline-block';
+            $('#modalStopScanBtn').style.display = 'none';
+        });
+    }
+
+    async function handleQRCodeScan(qrCodeData) {
+        stopQRScanner();
+
+        // Token aus URL extrahieren
+        let token = null;
+        if (qrCodeData.includes('?token=')) {
+            token = qrCodeData.split('?token=')[1].split('&')[0];
+        } else {
+            $('#modalScanResult').innerHTML =
+                '<p style="color:red; background: #ffebee; padding: 10px; border-radius: 5px;">Ungültiger QR-Code</p>';
+            return;
+        }
+
+        // Check-In durchführen
+        try {
+            const response = await fetch('http://localhost:8083/api/qr/checkin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Check-In fehlgeschlagen');
+            }
+
+            $('#modalScanResult').innerHTML =
+                `<p style="color:green; background: #e8f5e9; padding: 10px; border-radius: 5px;">
+                    <strong>✓ Check-In erfolgreich!</strong><br>
+                    Reservierung #${result.reservation.id}<br>
+                    Tisch: ${result.tableNumber || 'Wird zugewiesen'}<br>
+                    Gäste: ${result.reservation.numberOfGuests}
+                </p>`;
+
+            // Daten neu laden und Modal nach 2 Sekunden schließen
+            load();
+            setTimeout(() => {
+                closeQrScannerModal();
+            }, 2000);
+
+        } catch (error) {
+            $('#modalScanResult').innerHTML =
+                '<p style="color:red; background: #ffebee; padding: 10px; border-radius: 5px;"><strong>Fehler:</strong> ' + error.message + '</p>';
+        }
+    }
+
+    window.openQrScannerModal = openQrScannerModal;
+    window.closeQrScannerModal = closeQrScannerModal;
+
     const $ = sel => document.querySelector(sel);
 
     // ============ MODAL FUNCTIONS ============
@@ -660,6 +762,7 @@
             closePaymentModal();
             closeCleanedModal();
             closeWalkinModal();
+            closeQrScannerModal();
         }
     });
 
@@ -667,6 +770,12 @@
     document.addEventListener('DOMContentLoaded', () => {
         $('#q').addEventListener('input', () => { renderTables(); renderOrders(); });
         $('#refreshBtn').addEventListener('click', load);
+
+        // QR-Scanner Modal Event Listeners
+        $('#openQrScannerBtn')?.addEventListener('click', openQrScannerModal);
+        $('#modalStartScanBtn')?.addEventListener('click', startQRScanner);
+        $('#modalStopScanBtn')?.addEventListener('click', stopQRScanner);
+
         load();
         setInterval(load, 5000);
     });

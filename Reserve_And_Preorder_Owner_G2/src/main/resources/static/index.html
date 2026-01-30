@@ -177,6 +177,8 @@
         }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
         .btn-success { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-danger:hover { background: #d32f2f; }
         .btn-small { padding: 6px 12px; font-size: 12px; }
 
         /* Modal */
@@ -457,7 +459,12 @@ function renderReservationCard(res, showAssign) {
                 </div>
             `;
         } else {
-            assignHtml = '<div class="assign-section" style="color: #FF9800;">⚠️ Keine passenden Tische verfügbar</div>';
+            assignHtml = `
+                <div class="assign-section" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #FF9800;">⚠️ Keine passenden Tische verfügbar</span>
+                    <button class="btn btn-danger btn-small" onclick="rejectReservation(${res.id})">❌ Ablehnen</button>
+                </div>
+            `;
         }
     }
 
@@ -494,6 +501,24 @@ async function assignTable(reservationId) {
         if (!res.ok) throw new Error('Fehler bei Zuweisung');
 
         alert('✓ Tisch erfolgreich zugewiesen!');
+        refreshAll();
+    } catch (e) {
+        alert('❌ ' + e.message);
+    }
+}
+
+async function rejectReservation(reservationId) {
+    if (!confirm('Reservierung #' + reservationId + ' wirklich ablehnen?\n\nDer Kunde wird benachrichtigt, dass kein Tisch verfügbar ist.')) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/reservations/${reservationId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Fehler beim Ablehnen');
+
+        alert('✓ Reservierung wurde abgelehnt.');
         refreshAll();
     } catch (e) {
         alert('❌ ' + e.message);
